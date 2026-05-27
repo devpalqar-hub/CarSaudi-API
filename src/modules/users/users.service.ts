@@ -11,7 +11,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { SuspendUserDto } from './dto/suspend-user.dto';
-import { AccountStatus, Prisma, Role } from '@prisma/client';
+import { AccountStatus, Prisma } from '@prisma/client';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
 import * as bcrypt from 'bcrypt';
 import * as XLSX from 'xlsx';
@@ -30,15 +30,33 @@ export class UsersService {
     fullName: true,
     email: true,
     phone: true,
-    role: true,
     accountStatus: true,
     isVerified: true,
     suspendedAt: true,
+    suspendUntil: true,
     suspendReason: true,
     lastLoginAt: true,
     createdAt: true,
     updatedAt: true,
+    roles: {
+      select: {
+        role: {
+          select: { name: true, label: true },
+        },
+      },
+    },
   };
+
+  /**
+   * Flatten user roles from nested relation to string array
+   */
+  private mapUserRoles(user: any) {
+    if (!user) return user;
+    return {
+      ...user,
+      roles: user.roles?.map((ur: any) => ur.role.name) ?? [],
+    };
+  }
 
   /**
    * List users with pagination, search, and filtering
@@ -61,7 +79,11 @@ export class UsersService {
     const where: Prisma.UserWhereInput = {};
 
     if (role) {
-      where.role = role;
+      where.roles = {
+        some: {
+          role: { name: role },
+        },
+      };
     }
 
     if (accountStatus) {
@@ -85,7 +107,6 @@ export class UsersService {
     const allowedSortFields = [
       'fullName',
       'email',
-      'role',
       'accountStatus',
       'createdAt',
       'lastLoginAt',
@@ -109,7 +130,7 @@ export class UsersService {
     ]);
 
     return {
-      data,
+      data: data.map((u) => this.mapUserRoles(u)),
       meta: {
         total,
         page,
@@ -132,23 +153,38 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return this.mapUserRoles(user);
   }
 
   /**
    * Create a new user (admin action)
    */
-  async create(dto: CreateUserDto, creatorRole: Role) {
-    // Only SUPER_ADMIN can create SECONDARY_ADMIN
-    if (
-      dto.role === Role.SUPER_ADMIN
-    ) {
+  async create(dto: CreateUserDto, creatorRoles: string[]) {
+    // Validate requested roles exist
+    const requestedRoles = await this.prisma.role.findMany({
+      where: { name: { in: dto.roles } },
+    });
+
+    if (requestedRoles.length !== dto.roles.length) {
+      const found = requestedRoles.map((r) => r.name);
+      const invalid = dto.roles.filter((r) => !found.includes(r));
+      throw new BadRequestException(
+        `Invalid role(s): ${invalid.join(', ')}`,
+      );
+    }
+
+    // Cannot create SUPER_ADMIN accounts
+    if (dto.roles.includes('SUPER_ADMIN')) {
       throw new ForbiddenException('Cannot create a Super Admin account');
     }
 
-    if (dto.role === Role.SECONDARY_ADMIN && creatorRole !== Role.SUPER_ADMIN) {
+    // Only SUPER_ADMIN can assign SECONDARY_ADMIN
+    if (
+      dto.roles.includes('SECONDARY_ADMIN') &&
+      !creatorRoles.includes('SUPER_ADMIN')
+    ) {
       throw new ForbiddenException(
-        'Only Super Admin can create Secondary Admin accounts',
+        'Only Super Admin can create accounts with Secondary Admin role',
       );
     }
 
@@ -178,17 +214,21 @@ export class UsersService {
         email: dto.email.toLowerCase(),
         phone: dto.phone,
         password: hashedPassword,
-        role: dto.role,
         isVerified: true, // Admin-created users are pre-verified
+        roles: {
+          create: requestedRoles.map((r) => ({
+            roleId: r.id,
+          })),
+        },
       },
       select: this.userSelect,
     });
 
     this.logger.log(
-      `User created by admin: ${user.email} with role ${user.role}`,
+      `User created by admin: ${user.email} with roles [${dto.roles.join(', ')}]`,
     );
 
-    return user;
+    return this.mapUserRoles(user);
   }
 
   /**
@@ -231,7 +271,7 @@ export class UsersService {
       select: this.userSelect,
     });
 
-    return updated;
+    return this.mapUserRoles(updated);
   }
 
   /**
@@ -242,10 +282,19 @@ export class UsersService {
   }
 
   /**
-   * Suspend user account
+   * Suspend user account (optionally temporary with suspendUntil)
    */
   async suspend(id: string, dto: SuspendUserDto, adminId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        roles: {
+          select: {
+            role: { select: { name: true } },
+          },
+        },
+      },
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -255,7 +304,9 @@ export class UsersService {
       throw new BadRequestException('Cannot suspend your own account');
     }
 
-    if (user.role === Role.SUPER_ADMIN) {
+    const userRoleNames = user.roles.map((ur) => ur.role.name);
+
+    if (userRoleNames.includes('SUPER_ADMIN')) {
       throw new ForbiddenException('Cannot suspend a Super Admin account');
     }
 
@@ -268,6 +319,9 @@ export class UsersService {
       data: {
         accountStatus: AccountStatus.SUSPENDED,
         suspendedAt: new Date(),
+        suspendUntil: dto.suspendUntil
+          ? new Date(dto.suspendUntil)
+          : null,
         suspendReason: dto.reason,
       },
       select: this.userSelect,
@@ -278,9 +332,14 @@ export class UsersService {
       where: { userId: id },
     });
 
-    this.logger.log(`User ${user.email} suspended. Reason: ${dto.reason}`);
+    const suspensionType = dto.suspendUntil
+      ? `temporarily until ${dto.suspendUntil}`
+      : 'indefinitely';
+    this.logger.log(
+      `User ${user.email} suspended ${suspensionType}. Reason: ${dto.reason}`,
+    );
 
-    return suspended;
+    return this.mapUserRoles(suspended);
   }
 
   /**
@@ -302,6 +361,7 @@ export class UsersService {
       data: {
         accountStatus: AccountStatus.ACTIVE,
         suspendedAt: null,
+        suspendUntil: null,
         suspendReason: null,
       },
       select: this.userSelect,
@@ -309,14 +369,23 @@ export class UsersService {
 
     this.logger.log(`User ${user.email} reactivated`);
 
-    return reactivated;
+    return this.mapUserRoles(reactivated);
   }
 
   /**
    * Permanently delete user account (cascades sessions & OTPs)
    */
   async remove(id: string, adminId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        roles: {
+          select: {
+            role: { select: { name: true } },
+          },
+        },
+      },
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -326,7 +395,9 @@ export class UsersService {
       throw new BadRequestException('Cannot delete your own account');
     }
 
-    if (user.role === Role.SUPER_ADMIN) {
+    const userRoleNames = user.roles.map((ur) => ur.role.name);
+
+    if (userRoleNames.includes('SUPER_ADMIN')) {
       throw new ForbiddenException('Cannot delete a Super Admin account');
     }
 
@@ -381,7 +452,11 @@ export class UsersService {
     const where: Prisma.UserWhereInput = {};
 
     if (query.role) {
-      where.role = query.role;
+      where.roles = {
+        some: {
+          role: { name: query.role },
+        },
+      };
     }
 
     if (query.accountStatus) {
@@ -408,9 +483,12 @@ export class UsersService {
       'Full Name': user.fullName,
       Email: user.email,
       Phone: user.phone,
-      Role: user.role,
+      Roles: user.roles.map((ur: any) => ur.role.name).join(', '),
       Status: user.accountStatus,
       Verified: user.isVerified ? 'Yes' : 'No',
+      'Suspended Until': user.suspendUntil
+        ? new Date(user.suspendUntil).toISOString()
+        : '',
       'Last Login': user.lastLoginAt
         ? new Date(user.lastLoginAt).toISOString()
         : 'Never',
@@ -427,9 +505,10 @@ export class UsersService {
       { wch: 25 }, // Full Name
       { wch: 30 }, // Email
       { wch: 18 }, // Phone
-      { wch: 18 }, // Role
+      { wch: 30 }, // Roles
       { wch: 12 }, // Status
       { wch: 10 }, // Verified
+      { wch: 25 }, // Suspended Until
       { wch: 25 }, // Last Login
       { wch: 25 }, // Created At
     ];

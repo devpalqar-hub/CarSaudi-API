@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { Role } from '@prisma/client';
+import { IsArray, ArrayMinSize, IsString } from 'class-validator';
 
 export class AssignRoleDto {
   @ApiProperty({
-    description: 'Role to assign to the user',
-    enum: Role,
-    example: Role.MODERATOR,
+    description: 'Role names to assign to the user',
+    example: ['MODERATOR', 'DEALER'],
+    type: [String],
   })
-  @IsNotEmpty()
-  @IsEnum(Role)
-  role: Role;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  roles: string[];
 }

@@ -33,6 +33,15 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase() },
+      include: {
+        roles: {
+          select: {
+            role: {
+              select: { name: true },
+            },
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -40,9 +49,26 @@ export class AuthService {
     }
 
     if (user.accountStatus !== AccountStatus.ACTIVE) {
-      throw new UnauthorizedException(
-        `Your account has been ${user.accountStatus.toLowerCase()}`,
-      );
+      // Check for auto-reactivation of temporary suspensions
+      if (
+        user.accountStatus === AccountStatus.SUSPENDED &&
+        user.suspendUntil &&
+        user.suspendUntil < new Date()
+      ) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            accountStatus: AccountStatus.ACTIVE,
+            suspendedAt: null,
+            suspendUntil: null,
+            suspendReason: null,
+          },
+        });
+      } else {
+        throw new UnauthorizedException(
+          `Your account has been ${user.accountStatus.toLowerCase()}`,
+        );
+      }
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -52,7 +78,11 @@ export class AuthService {
     }
 
     const { password: _, ...result } = user;
-    return result;
+    // Flatten roles
+    return {
+      ...result,
+      roles: user.roles.map((ur) => ur.role.name),
+    };
   }
 
   /**
@@ -77,26 +107,48 @@ export class AuthService {
       throw new ConflictException('Phone number already registered');
     }
 
+    // Find the default USER role
+    const userRole = await this.prisma.role.findUnique({
+      where: { name: 'USER' },
+    });
+
+    if (!userRole) {
+      throw new BadRequestException(
+        'Default USER role not found. Please run the seed script.',
+      );
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(dto.password, 12);
 
-    // Create user
+    // Create user with default USER role
     const user = await this.prisma.user.create({
       data: {
         fullName: dto.fullName,
         email: dto.email.toLowerCase(),
         phone: dto.phone,
         password: hashedPassword,
+        roles: {
+          create: {
+            roleId: userRole.id,
+          },
+        },
       },
       select: {
         id: true,
         fullName: true,
         email: true,
         phone: true,
-        role: true,
         accountStatus: true,
         isVerified: true,
         createdAt: true,
+        roles: {
+          select: {
+            role: {
+              select: { name: true, label: true },
+            },
+          },
+        },
       },
     });
 
@@ -104,7 +156,10 @@ export class AuthService {
 
     return {
       message: 'Registration successful',
-      user,
+      user: {
+        ...user,
+        roles: user.roles.map((ur) => ur.role.name),
+      },
     };
   }
 
@@ -112,7 +167,7 @@ export class AuthService {
    * Login user and return tokens
    */
   async login(user: any, userAgent?: string, ipAddress?: string) {
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.roles);
 
     // Create session with refresh token
     await this.createSession(
@@ -135,7 +190,7 @@ export class AuthService {
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
-        role: user.role,
+        roles: user.roles,
         isVerified: user.isVerified,
       },
       tokens,
@@ -149,7 +204,19 @@ export class AuthService {
     // Find session by refresh token
     const session = await this.prisma.session.findUnique({
       where: { refreshToken: dto.refreshToken },
-      include: { user: true },
+      include: {
+        user: {
+          include: {
+            roles: {
+              select: {
+                role: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!session) {
@@ -168,11 +235,14 @@ export class AuthService {
       );
     }
 
+    // Flatten roles
+    const roles = session.user.roles.map((ur) => ur.role.name);
+
     // Generate new tokens
     const tokens = await this.generateTokens(
       session.user.id,
       session.user.email,
-      session.user.role,
+      roles,
     );
 
     // Update session with new refresh token
@@ -227,12 +297,18 @@ export class AuthService {
         fullName: true,
         email: true,
         phone: true,
-        role: true,
         accountStatus: true,
         isVerified: true,
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
+        roles: {
+          select: {
+            role: {
+              select: { name: true, label: true },
+            },
+          },
+        },
       },
     });
 
@@ -240,7 +316,10 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return {
+      ...user,
+      roles: user.roles.map((ur) => ur.role.name),
+    };
   }
 
   /**
@@ -420,8 +499,8 @@ export class AuthService {
 
   // ─── Private Helpers ────────────────────────────────────
 
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private async generateTokens(userId: string, email: string, roles: string[]) {
+    const payload = { sub: userId, email, roles };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

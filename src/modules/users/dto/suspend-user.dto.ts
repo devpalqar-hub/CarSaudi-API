@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, MaxLength, IsOptional, IsDateString } from 'class-validator';
 
 export class SuspendUserDto {
   @ApiProperty({
@@ -11,4 +11,13 @@ export class SuspendUserDto {
   @IsString()
   @MaxLength(500)
   reason: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Timestamp until which the account is suspended. If omitted, suspension is indefinite.',
+    example: '2026-06-30T23:59:59.000Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  suspendUntil?: string;
 }

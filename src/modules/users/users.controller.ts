@@ -19,7 +19,6 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -35,7 +34,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
   @ApiOperation({ summary: 'List users with pagination, search and filtering' })
   @ApiResponse({ status: 200, description: 'Paginated user list' })
   async findAll(@Query() query: QueryUsersDto) {
@@ -43,7 +42,7 @@ export class UsersController {
   }
 
   @Get('export')
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
   @ApiOperation({ summary: 'Export users to XLSX file' })
   @ApiResponse({
     status: 200,
@@ -68,7 +67,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User details' })
@@ -78,15 +77,15 @@ export class UsersController {
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
-  @ApiOperation({ summary: 'Create a new user or moderator account' })
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
+  @ApiOperation({ summary: 'Create a new user with specified roles' })
   @ApiResponse({ status: 201, description: 'User created' })
   @ApiResponse({ status: 409, description: 'Email or phone conflict' })
   async create(
     @Body() dto: CreateUserDto,
-    @CurrentUser('role') creatorRole: Role,
+    @CurrentUser('roles') creatorRoles: string[],
   ) {
-    return this.usersService.create(dto, creatorRole);
+    return this.usersService.create(dto, creatorRoles);
   }
 
   @Patch('profile')
@@ -100,7 +99,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
   @ApiOperation({ summary: 'Update user by ID (admin)' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User updated' })
@@ -110,8 +109,10 @@ export class UsersController {
   }
 
   @Patch(':id/suspend')
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
-  @ApiOperation({ summary: 'Suspend user account' })
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
+  @ApiOperation({
+    summary: 'Suspend user account (optionally temporary with suspendUntil)',
+  })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User suspended' })
   @ApiResponse({ status: 404, description: 'User not found' })
@@ -124,7 +125,7 @@ export class UsersController {
   }
 
   @Patch(':id/reactivate')
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
   @ApiOperation({ summary: 'Reactivate suspended user account' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User reactivated' })
@@ -134,7 +135,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Permanently delete user (Super Admin only)' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User deleted' })
@@ -147,7 +148,7 @@ export class UsersController {
   }
 
   @Post(':id/reset-password')
-  @Roles(Role.SUPER_ADMIN, Role.SECONDARY_ADMIN)
+  @Roles('SUPER_ADMIN', 'SECONDARY_ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Admin reset user password' })
   @ApiParam({ name: 'id', description: 'User UUID' })

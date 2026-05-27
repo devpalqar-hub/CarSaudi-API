@@ -8,7 +8,7 @@ import { AccountStatus } from '@prisma/client';
 export interface JwtPayload {
   sub: string;
   email: string;
-  role: string;
+  roles: string[];
 }
 
 @Injectable()
@@ -32,9 +32,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         fullName: true,
         email: true,
         phone: true,
-        role: true,
         accountStatus: true,
         isVerified: true,
+        suspendedAt: true,
+        suspendUntil: true,
+        roles: {
+          select: {
+            role: {
+              select: { name: true },
+            },
+          },
+        },
       },
     });
 
@@ -42,12 +50,39 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
-    if (user.accountStatus !== AccountStatus.ACTIVE) {
+    // Auto-reactivate if temporary suspension has expired
+    if (
+      user.accountStatus === AccountStatus.SUSPENDED &&
+      user.suspendUntil &&
+      user.suspendUntil < new Date()
+    ) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          accountStatus: AccountStatus.ACTIVE,
+          suspendedAt: null,
+          suspendUntil: null,
+          suspendReason: null,
+        },
+      });
+      // Allow request to proceed after reactivation
+    } else if (user.accountStatus !== AccountStatus.ACTIVE) {
       throw new UnauthorizedException(
         'Your account has been ' + user.accountStatus.toLowerCase(),
       );
     }
 
-    return user;
+    // Flatten roles to string array
+    const roles = user.roles.map((ur) => ur.role.name);
+
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      accountStatus: user.accountStatus,
+      isVerified: user.isVerified,
+      roles,
+    };
   }
 }

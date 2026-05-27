@@ -7,14 +7,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AssignRoleDto } from './dto/assign-role.dto';
-import { Role } from '@prisma/client';
-
-export interface RoleDescription {
-  role: Role;
-  label: string;
-  description: string;
-  permissions: string[];
-}
 
 @Injectable()
 export class RolesService {
@@ -23,102 +15,39 @@ export class RolesService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Get all available roles with descriptions
+   * Get all available roles from the database
    */
-  getAllRoles(): RoleDescription[] {
-    return [
-      {
-        role: Role.SUPER_ADMIN,
-        label: 'Super Admin',
-        description:
-          'Full platform access with all administrative privileges. Can manage all users, roles, and platform configurations.',
-        permissions: [
-          'Manage all users',
-          'Assign/revoke roles',
-          'Create Secondary Admins',
-          'Delete accounts permanently',
-          'Manage platform settings',
-          'Access all analytics',
-          'Manage listings',
-          'Manage dealers',
-          'Manage payments',
-          'Manage advertisements',
-        ],
+  async getAllRoles() {
+    const roles = await this.prisma.role.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        label: true,
+        description: true,
       },
-      {
-        role: Role.SECONDARY_ADMIN,
-        label: 'Secondary Admin',
-        description:
-          'Administrative access with most management capabilities except Super Admin operations.',
-        permissions: [
-          'Manage users (create, update, suspend)',
-          'Manage moderators',
-          'Manage listings',
-          'Manage dealers',
-          'View analytics',
-          'Manage promotions',
-          'Export reports',
-        ],
-      },
-      {
-        role: Role.MODERATOR,
-        label: 'Moderator',
-        description:
-          'Content moderation access for reviewing and managing vehicle listings and user content.',
-        permissions: [
-          'Review listings',
-          'Approve/reject listings',
-          'Flag content',
-          'View user profiles',
-          'Manage reported content',
-        ],
-      },
-      {
-        role: Role.DEALER,
-        label: 'Dealer',
-        description:
-          'Verified car dealer account with vehicle listing management and dealer portal access.',
-        permissions: [
-          'Manage own listings',
-          'View inquiries',
-          'Manage dealer profile',
-          'Access dealer analytics',
-          'Manage subscriptions',
-        ],
-      },
-      {
-        role: Role.USER,
-        label: 'User',
-        description:
-          'Standard platform user who can browse, search, and inquire about vehicle listings.',
-        permissions: [
-          'Browse listings',
-          'Search vehicles',
-          'Contact dealers',
-          'Manage own profile',
-          'Save favorites',
-          'Post reviews',
-        ],
-      },
-    ];
+    });
+
+    return roles;
   }
 
   /**
-   * Assign role to a user
+   * Assign roles to a user (replaces existing roles)
    */
   async assignRole(
     userId: string,
     dto: AssignRoleDto,
     adminId: string,
-    adminRole: Role,
+    adminRoles: string[],
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
+      include: {
+        roles: {
+          select: {
+            role: { select: { name: true } },
+          },
+        },
       },
     });
 
@@ -126,68 +55,105 @@ export class RolesService {
       throw new NotFoundException('User not found');
     }
 
-    // Cannot change own role
+    // Cannot change own roles
     if (userId === adminId) {
-      throw new BadRequestException('Cannot change your own role');
+      throw new BadRequestException('Cannot change your own roles');
+    }
+
+    const currentRoles = user.roles.map((ur) => ur.role.name);
+
+    // Cannot modify SUPER_ADMIN users (unless you are SUPER_ADMIN removing other roles)
+    if (currentRoles.includes('SUPER_ADMIN')) {
+      throw new ForbiddenException(
+        'Cannot modify the roles of a Super Admin',
+      );
     }
 
     // Cannot assign SUPER_ADMIN role
-    if (dto.role === Role.SUPER_ADMIN) {
+    if (dto.roles.includes('SUPER_ADMIN')) {
       throw new ForbiddenException('Cannot assign Super Admin role');
     }
 
     // Only SUPER_ADMIN can assign SECONDARY_ADMIN
     if (
-      dto.role === Role.SECONDARY_ADMIN &&
-      adminRole !== Role.SUPER_ADMIN
+      dto.roles.includes('SECONDARY_ADMIN') &&
+      !adminRoles.includes('SUPER_ADMIN')
     ) {
       throw new ForbiddenException(
         'Only Super Admin can assign Secondary Admin role',
       );
     }
 
-    // Cannot modify SUPER_ADMIN users
-    if (user.role === Role.SUPER_ADMIN) {
-      throw new ForbiddenException(
-        'Cannot modify the role of a Super Admin',
-      );
-    }
-
     // SECONDARY_ADMIN cannot modify other SECONDARY_ADMIN
     if (
-      user.role === Role.SECONDARY_ADMIN &&
-      adminRole !== Role.SUPER_ADMIN
+      currentRoles.includes('SECONDARY_ADMIN') &&
+      !adminRoles.includes('SUPER_ADMIN')
     ) {
       throw new ForbiddenException(
         'Only Super Admin can modify Secondary Admin roles',
       );
     }
 
-    if (user.role === dto.role) {
+    // Validate requested roles exist
+    const requestedRoles = await this.prisma.role.findMany({
+      where: { name: { in: dto.roles } },
+    });
+
+    if (requestedRoles.length !== dto.roles.length) {
+      const found = requestedRoles.map((r) => r.name);
+      const invalid = dto.roles.filter((r) => !found.includes(r));
       throw new BadRequestException(
-        `User already has the ${dto.role} role`,
+        `Invalid role(s): ${invalid.join(', ')}`,
       );
     }
 
-    const updated = await this.prisma.user.update({
+    // Replace all roles in a transaction
+    await this.prisma.$transaction([
+      // Remove all existing roles
+      this.prisma.userRole.deleteMany({
+        where: { userId },
+      }),
+      // Assign new roles
+      ...requestedRoles.map((role) =>
+        this.prisma.userRole.create({
+          data: {
+            userId,
+            roleId: role.id,
+          },
+        }),
+      ),
+    ]);
+
+    // Fetch updated user
+    const updated = await this.prisma.user.findUnique({
       where: { id: userId },
-      data: { role: dto.role },
       select: {
         id: true,
         fullName: true,
         email: true,
-        role: true,
         accountStatus: true,
+        roles: {
+          select: {
+            role: {
+              select: { name: true, label: true },
+            },
+          },
+        },
       },
     });
 
+    const newRoles = updated!.roles.map((ur) => ur.role.name);
+
     this.logger.log(
-      `Role changed for ${user.email}: ${user.role} → ${dto.role}`,
+      `Roles changed for ${user.email}: [${currentRoles.join(', ')}] → [${newRoles.join(', ')}]`,
     );
 
     return {
-      message: `Role updated to ${dto.role} successfully`,
-      user: updated,
+      message: `Roles updated to [${newRoles.join(', ')}] successfully`,
+      user: {
+        ...updated,
+        roles: newRoles,
+      },
     };
   }
 }

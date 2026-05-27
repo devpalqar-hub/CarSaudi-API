@@ -9,14 +9,6 @@ datasource db {
 
 // ─── Enums ──────────────────────────────────────────────
 
-enum Role {
-  SUPER_ADMIN
-  SECONDARY_ADMIN
-  MODERATOR
-  DEALER
-  USER
-}
-
 enum AccountStatus {
   ACTIVE
   SUSPENDED
@@ -28,6 +20,38 @@ enum OtpType {
   EMAIL_VERIFY
 }
 
+// ─── Role ───────────────────────────────────────────────
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  label       String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  users UserRole[]
+
+  @@map("roles")
+}
+
+// ─── UserRole (Join Table) ──────────────────────────────
+
+model UserRole {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
 // ─── User ───────────────────────────────────────────────
 
 model User {
@@ -36,20 +60,20 @@ model User {
   email         String        @unique
   phone         String        @unique
   password      String
-  role          Role          @default(USER)
   accountStatus AccountStatus @default(ACTIVE)
   isVerified    Boolean       @default(false)
   suspendedAt   DateTime?
+  suspendUntil  DateTime?
   suspendReason String?
   lastLoginAt   DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  roles    UserRole[]
   sessions Session[]
   otpCodes OtpCode[]
   dealer   Dealer?
 
-  @@index([role])
   @@index([accountStatus])
   @@index([email])
   @@map("users")
