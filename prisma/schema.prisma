@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  SECONDARY_ADMIN
+  MODERATOR
+  DEALER
+  USER
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum OtpType {
+  PASSWORD_RESET
+  EMAIL_VERIFY
+}
+
+// ─── User ───────────────────────────────────────────────
+
+model User {
+  id            String        @id @default(uuid())
+  fullName      String
+  email         String        @unique
+  phone         String        @unique
+  password      String
+  role          Role          @default(USER)
+  accountStatus AccountStatus @default(ACTIVE)
+  isVerified    Boolean       @default(false)
+  suspendedAt   DateTime?
+  suspendReason String?
+  lastLoginAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  sessions Session[]
+  otpCodes OtpCode[]
+  dealer   Dealer?
+
+  @@index([role])
+  @@index([accountStatus])
+  @@index([email])
+  @@map("users")
+}
+
+// ─── Session ────────────────────────────────────────────
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("sessions")
+}
+
+// ─── OTP Code ───────────────────────────────────────────
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  type      OtpType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([code, type])
+  @@map("otp_codes")
+}
+
+// ─── Dealer ─────────────────────────────────────────────
+
+model Dealer {
+  id          String   @id @default(uuid())
+  companyName String
+  userId      String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("dealers")
+}
+
+// ─── Vehicle ────────────────────────────────────────────
+
+model Vehicle {
+  id        String   @id @default(uuid())
+  title     String
+  price     Float
+  year      Int
+  mileage   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("vehicles")
+}
