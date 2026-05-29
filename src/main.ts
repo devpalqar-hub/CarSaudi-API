@@ -60,6 +60,10 @@ async function bootstrap() {
     .addTag('Authentication', 'User registration, login, OTP verification, and session management')
     .addTag('Users', 'User CRUD, suspension, password reset, and data export')
     .addTag('Roles', 'Role listing and assignment')
+    .addTag('Listings', 'Vehicle listing CRUD, browsing, flagging, and inquiries')
+    .addTag('Admin Listings', 'Listing moderation, approval, rejection, bulk actions, and analytics')
+    .addTag('Dealers', 'Dealer application, profile management, and public profiles')
+    .addTag('Admin Dealers', 'Dealer verification, suspension, subscription management, and analytics')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

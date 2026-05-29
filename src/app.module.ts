@@ -10,6 +10,8 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { ListingsModule } from './modules/listings/listings.module';
+import { DealersModule } from './modules/dealers/dealers.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { RolesModule } from './modules/roles/roles.module';
     AuthModule,
     UsersModule,
     RolesModule,
+    ListingsModule,
+    DealersModule,
   ],
   providers: [
     // Global JWT auth guard (applied to all routes, skipped with @Public())

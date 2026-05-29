@@ -20,6 +20,82 @@ enum OtpType {
   EMAIL_VERIFY
 }
 
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+  SOLD
+  DELETED
+}
+
+enum FlagReason {
+  MISLEADING
+  INAPPROPRIATE
+  FRAUDULENT
+  DUPLICATE
+  SPAM
+  WRONG_PRICE
+  OTHER
+}
+
+enum FlagStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+  LPG
+  CNG
+}
+
+enum TransmissionType {
+  AUTOMATIC
+  MANUAL
+  CVT
+  SEMI_AUTOMATIC
+}
+
+enum BodyType {
+  SEDAN
+  SUV
+  HATCHBACK
+  COUPE
+  CONVERTIBLE
+  WAGON
+  VAN
+  TRUCK
+  BUS
+  OTHER
+}
+
+enum ConditionType {
+  NEW
+  USED
+  CERTIFIED_PRE_OWNED
+}
+
+enum DealerStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  SUSPENDED
+  REJECTED
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
 // ─── Role ───────────────────────────────────────────────
 
 model Role {
@@ -69,10 +145,15 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  roles    UserRole[]
-  sessions Session[]
-  otpCodes OtpCode[]
-  dealer   Dealer?
+  roles          UserRole[]
+  sessions       Session[]
+  otpCodes       OtpCode[]
+  dealer         Dealer?
+  listings       Listing[]        @relation("SellerListings")
+  flags          ListingFlag[]    @relation("UserFlags")
+  moderatedFlags ListingFlag[]    @relation("ModeratorFlags")
+  inquiries      ListingInquiry[] @relation("UserInquiries")
+  views          ListingView[]
 
   @@index([accountStatus])
   @@index([email])
@@ -118,27 +199,188 @@ model OtpCode {
 // ─── Dealer ─────────────────────────────────────────────
 
 model Dealer {
-  id          String   @id @default(uuid())
-  companyName String
-  userId      String   @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String           @id @default(uuid())
+  userId                String           @unique
+  companyName           String
+  tradeLicenseNumber    String?
+  tradeLicenseUrl       String?
+  contactEmail          String?
+  contactPhone          String?
+  address               String?
+  city                  String?
+  region                String?
+  description           String?
+  logoUrl               String?
+  websiteUrl            String?
+  status                DealerStatus     @default(PENDING_VERIFICATION)
+  subscriptionTier      SubscriptionTier @default(FREE)
+  subscriptionExpiresAt DateTime?
+  verifiedAt            DateTime?
+  rejectionReason       String?
+  maxListings           Int              @default(10)
+  totalListings         Int              @default(0)
+  totalViews            Int              @default(0)
+  totalInquiries        Int              @default(0)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings Listing[] @relation("DealerListings")
 
+  @@index([status])
+  @@index([subscriptionTier])
+  @@index([city])
   @@map("dealers")
 }
 
-// ─── Vehicle ────────────────────────────────────────────
+// ─── Listing ────────────────────────────────────────────
 
-model Vehicle {
+model Listing {
+  id              String           @id @default(uuid())
+  title           String
+  description     String?
+  sellerId        String
+  dealerId        String?
+
+  // Vehicle details
+  make            String
+  model           String
+  year            Int
+  mileage         Int
+  price           Float
+  currency        String           @default("SAR")
+  negotiable      Boolean          @default(false)
+  fuelType        FuelType?
+  transmission    TransmissionType?
+  bodyType        BodyType?
+  condition       ConditionType    @default(USED)
+  color           String?
+  engineSize      String?
+  horsepower      Int?
+  doors           Int?
+  cylinders       Int?
+  vin             String?
+
+  // Location
+  city            String?
+  region          String?
+
+  // Status & moderation
+  status          ListingStatus    @default(PENDING_REVIEW)
+  rejectionReason String?
+
+  // Featured
+  isFeatured      Boolean          @default(false)
+  featuredUntil   DateTime?
+
+  // Counters (denormalized for performance)
+  viewCount       Int              @default(0)
+  inquiryCount    Int              @default(0)
+  flagCount       Int              @default(0)
+
+  // Timestamps
+  expiresAt       DateTime?
+  publishedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  seller    User            @relation("SellerListings", fields: [sellerId], references: [id], onDelete: Cascade)
+  dealer    Dealer?         @relation("DealerListings", fields: [dealerId], references: [id], onDelete: SetNull)
+  images    ListingImage[]
+  flags     ListingFlag[]
+  views     ListingView[]
+  inquiries ListingInquiry[]
+
+  @@index([status])
+  @@index([sellerId])
+  @@index([dealerId])
+  @@index([make, model])
+  @@index([price])
+  @@index([city])
+  @@index([isFeatured])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@map("listings")
+}
+
+// ─── Listing Image ──────────────────────────────────────
+
+model ListingImage {
   id        String   @id @default(uuid())
-  title     String
-  price     Float
-  year      Int
-  mileage   Int
+  listingId String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  @@map("vehicles")
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("listing_images")
+}
+
+// ─── Listing Flag ───────────────────────────────────────
+
+model ListingFlag {
+  id            String     @id @default(uuid())
+  listingId     String
+  flaggedById   String
+  reason        FlagReason
+  description   String?
+  status        FlagStatus @default(PENDING)
+  moderatorId   String?
+  moderatorNote String?
+  resolvedAt    DateTime?
+  createdAt     DateTime   @default(now())
+
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  flaggedBy User    @relation("UserFlags", fields: [flaggedById], references: [id], onDelete: Cascade)
+  moderator User?   @relation("ModeratorFlags", fields: [moderatorId], references: [id], onDelete: SetNull)
+
+  @@index([listingId])
+  @@index([flaggedById])
+  @@index([status])
+  @@map("listing_flags")
+}
+
+// ─── Listing View ───────────────────────────────────────
+
+model ListingView {
+  id        String   @id @default(uuid())
+  listingId String
+  viewerId  String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  viewer  User?   @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+
+  @@index([listingId])
+  @@index([viewerId])
+  @@index([createdAt])
+  @@map("listing_views")
+}
+
+// ─── Listing Inquiry ────────────────────────────────────
+
+model ListingInquiry {
+  id          String    @id @default(uuid())
+  listingId   String
+  userId      String
+  message     String
+  phone       String?
+  email       String?
+  isRead      Boolean   @default(false)
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User    @relation("UserInquiries", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([userId])
+  @@index([isRead])
+  @@map("listing_inquiries")
 }
