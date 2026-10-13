@@ -1,0 +1,1205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  MODERATOR
+  DEALER
+  DEALER_STAFF
+  USER
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  APPLE
+  WHATSAPP_OTP
+}
+
+/// Granular permissions assignable to MODERATOR accounts (SUPER_ADMIN bypasses all checks).
+/// Mirrors the admin panel's permission model 1:1 so the frontend's permission keys and the
+/// backend's @RequirePermissions() checks stay in lockstep.
+enum Permission {
+  // Dashboard
+  DASHBOARD_VIEW
+
+  // Property Listings
+  PROPERTIES_VIEW
+  PROPERTIES_MANAGE
+  PROPERTIES_REVIEW
+
+  // Property Analytics
+  PROPERTY_ANALYTICS_VIEW
+
+  // Listing Payment Settings
+  LISTING_SETTINGS_VIEW
+  LISTING_SETTINGS_MANAGE
+
+  // Dealers
+  DEALERS_VIEW
+  DEALERS_MANAGE
+  DEALERS_APPLICATIONS_REVIEW
+
+  // Dealer Analytics
+  DEALER_ANALYTICS_VIEW
+
+  // Featured Plans
+  FEATURED_PLANS_VIEW
+  FEATURED_PLANS_MANAGE
+
+  // Featured Properties
+  FEATURED_PROPERTIES_VIEW
+
+  // Subscription Plans
+  SUBSCRIPTION_PLANS_VIEW
+  SUBSCRIPTION_PLANS_MANAGE
+
+  // Dealer Subscriptions
+  DEALER_SUBSCRIPTIONS_VIEW
+
+  // Users
+  USERS_VIEW
+
+  // Moderators
+  MODERATORS_VIEW
+  MODERATORS_MANAGE
+
+  // Options (Listing Types, Amenities, Nearby Tags)
+  OPTIONS_VIEW
+  OPTIONS_MANAGE
+
+  // Banners
+  BANNERS_VIEW
+  BANNERS_MANAGE
+
+  // Support
+  SUPPORT_VIEW
+  SUPPORT_REPLY
+  SUPPORT_UPDATE_STATUS
+}
+
+/// Permissions assignable to dealer staff members
+enum DealerStaffPermission {
+  DASHBOARD_VIEW
+  PROPERTY_LISTINGS_VIEW
+  PROPERTY_DETAILS_VIEW
+  PROPERTY_EDIT
+  PROPERTY_ADD
+  PROPERTY_FEATURE
+  PROPERTY_MARK_SOLD
+  PROPERTY_PAYMENT
+  STAFF_VIEW
+  STAFF_ADD
+  STAFF_EDIT
+  STAFF_DELETE
+  VISIT_INQUIRIES_VIEW
+  BULK_UPLOAD
+  ANALYTICS_VIEW
+  SUBSCRIPTION_VIEW
+  SUBSCRIPTION_PURCHASE
+  SUBSCRIPTION_RENEW
+  INVOICES_VIEW
+  CHATS_MANAGE
+}
+
+enum ListingPurpose {
+  SALE
+  RENT
+}
+
+enum ListingStatus {
+  /// Awaiting admin/moderator review
+  PENDING
+  ACTIVE
+  INACTIVE
+  REJECTED
+  RESUBMITTED
+  SOLD
+  /// Content already approved by admin/moderator but outside the free-listing quota —
+  /// held here until payment succeeds, then moves straight to ACTIVE (no further review).
+  PENDING_PAYMENT
+}
+
+enum ListingReviewAction {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  RESUBMITTED
+  EDITED_BY_ADMIN
+  FLAGGED_DUPLICATE
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  RESUBMITTED
+}
+
+enum DocumentType {
+  TRADE_LICENSE
+  ID_CARD
+  PASSPORT
+  BUSINESS_REGISTRATION
+  RERA_CERTIFICATE
+  OTHER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  LOCATION
+}
+
+enum TicketCategory {
+  REPORT_LISTING
+  REPORT_USER
+  PAYMENT
+  GENERAL
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  ATTENDED
+  CLOSED
+}
+
+enum VisitStatus {
+  PENDING
+  ACCEPTED
+  RESCHEDULED
+  REJECTED
+  CANCELLED
+}
+
+/// Placement locations where featured listings appear
+enum FeaturedPlacementLocation {
+  HOME_PAGE
+  LISTING_PAGE
+  PROPERTY_DETAIL_PAGE
+}
+
+enum TrackingLogType {
+  IMPRESSION
+  VIEW
+  /// User tapped "Chat on WhatsApp" for a listing (logged client-side)
+  WHATSAPP_CLICK
+}
+
+/// Duration tier for a featured plan
+enum FeaturedPlanDuration {
+  SEVEN_DAYS
+  TWENTY_DAYS
+  THIRTY_DAYS
+}
+
+/// Stripe payment lifecycle for a featured subscription
+enum FeaturedPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  FREE
+}
+
+/// Payment lifecycle for a dealer agency subscription plan
+enum DealerSubPaymentStatus {
+  PENDING
+  PAID
+  FREE
+  FAILED
+}
+
+/// Payment lifecycle for a single listing creation
+enum ListingPaymentStatus {
+  PENDING
+  PAID
+  FREE
+  FAILED
+}
+
+/// Which billable action an Invoice documents — kept common across the three
+/// payable flows in the app so all invoices share one shape/API.
+enum InvoiceType {
+  LISTING_PAYMENT
+  FEATURED_LISTING
+  DEALER_SUBSCRIPTION
+}
+
+/// Whether the invoiced amount was actually charged (Stripe) or covered by
+/// free quota / a 100% discount / an admin-assigned grant.
+enum InvoiceStatus {
+  PAID
+  FREE
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Amenities & Nearby Tag constants are stored as String[] on the model.
+// The allowed values are enforced in the application layer (DTOs / service).
+//
+// AMENITIES (all types):
+//   Swimming Pool, Gym / Fitness Center, Parking, Covered Parking, Garden,
+//   Balcony, Terrace, Maid's Room, Storage Room, Central A/C, Built-in Wardrobes,
+//   Security / CCTV, Elevator, Intercom, Pets Allowed, BBQ Area, Kids Play Area,
+//   Sauna / Steam Room, Jacuzzi, Private Beach Access, Concierge Service,
+//   Smart Home System, Solar Panels, EV Charging Station, Shared Gym,
+//   Shared Pool, Satellite / Cable TV, Broadband Internet, Mosque,
+//   Supermarket Inside Community, Retail Shops, Conference Room (Commercial)
+//
+// NEARBY TAGS:
+//   school, university, hospital, clinic, pharmacy, mosque, church,
+//   park, beach, mall, supermarket, metro, bus_stop, airport,
+//   corniche, sports_complex, hotel, restaurant, government_office
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                String       @id @default(cuid())
+  name              String?
+  email             String?      @unique
+  phone             String?      @unique
+  password          String?
+  role              UserRole     @default(USER)
+  authProvider      AuthProvider @default(LOCAL)
+  googleId          String?      @unique
+  appleId           String?      @unique
+  isProfileComplete Boolean      @default(false)
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  /// Number of free listings this (non-dealer) user has already used, counted against
+  /// the admin-configured `USER_FREE_LISTINGS_LIMIT` system setting
+  freeListingsUsed Int @default(0)
+
+  moderatorProfile   ModeratorProfile?   @relation("ModeratorUser")
+  createdModerators  ModeratorProfile[]  @relation("CreatedByAdmin")
+  listings           Listing[]
+  listingReviews     ListingReview[]
+  dealerProfile      DealerProfile?
+  dealerApplication  DealerApplication?  @relation("ApprovedDealerUser")
+  applicationReviews ApplicationReview[]
+
+  // Chat relations
+  dealerStaffOwner   DealerStaff[]      @relation("DealerStaffOwner")
+  dealerStaffMember  DealerStaff?       @relation("DealerStaffMember")
+  chatConversations  ChatConversation[] @relation("ConversationUser")
+  chatParticipations ChatParticipant[]  @relation("ConversationParticipant")
+  sentMessages       ChatMessage[]      @relation("MessageSender")
+
+  // Support ticket relations
+  submittedTickets  SupportTicket[] @relation("TicketSubmitter")
+  reportedInTickets SupportTicket[] @relation("ReportedUser")
+  assignedTickets   SupportTicket[] @relation("TicketAssignee")
+  ticketReplies     TicketReply[]   @relation("TicketReplyAuthor")
+
+  // Wishlist and Visits relations
+  wishlists       Wishlist[]
+  visitsAsVisitor PropertyVisit[] @relation("VisitVisitor")
+  visitsAsOwner   PropertyVisit[] @relation("VisitOwner")
+
+  // Featured listing relations
+  featuredBoostsAdded FeaturedSubscription[] @relation("AdminFeaturedBoosts")
+  featuredBoostsOwned FeaturedSubscription[] @relation("UserFeaturedBoosts")
+
+  // Dealer subscription relations
+  dealerSubscriptions         DealerSubscription[] @relation("DealerSubscriptions")
+  assignedDealerSubscriptions DealerSubscription[] @relation("AssignedDealerSubscriptions")
+
+  // Invoice relations
+  invoices Invoice[] @relation("InvoicesBilledTo")
+
+  // Push notification relations
+  deviceTokens  DeviceToken[]
+  notifications Notification[]
+
+  // Bulk listing upload draft relations
+  listingDraftsAsAgency  ListingDraft[] @relation("ListingDraftAgency")
+  listingDraftsAsUploader ListingDraft[] @relation("ListingDraftUploader")
+
+  @@map("users")
+}
+
+/// Platform a registered FCM device token belongs to
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+/// A Firebase Cloud Messaging token registered by a user's device, for push notifications.
+/// One user can have several (multiple devices); one token belongs to exactly one user at a time —
+/// re-registering an existing token on a different account reassigns it (device logged into a new account).
+model DeviceToken {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String          @unique
+  platform  DevicePlatform?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+/// In-app notification feed entry, created alongside every push notification sent via
+/// NotificationsService (see sendToUser/sendToUsers) so account holders — dealers and
+/// dealer staff in particular — have a persistent, mark-as-read notification list even if
+/// they never registered a device / push delivery failed.
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String
+  body  String
+  /// Optional machine-readable event type (e.g. "LISTING_APPROVED") for client-side routing
+  type  String?
+  /// Extra key/value data delivered alongside the notification (deep-link route, entity IDs, ...)
+  data  Json?
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+/// OTP records for the email-based "forgot password" flow (SUPER_ADMIN / MODERATOR /
+/// DEALER / DEALER_STAFF — the same roles allowed to use email+password login).
+model PasswordResetOtp {
+  id        String   @id @default(cuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_otps")
+}
+
+model ModeratorProfile {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  user        User         @relation("ModeratorUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User         @relation("CreatedByAdmin", fields: [createdById], references: [id])
+  permissions Permission[]
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("moderator_profiles")
+}
+
+model DealerProfile {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealerName   String
+  contactPhone String?
+  tagline      String?
+  coverImage   String?
+  /// Agency logo / profile picture (distinct from the cover/hero banner image)
+  logoImage    String?
+  tradeNumber  String?
+  reraNumber   String?
+  address      String?
+  city         String?
+  country      String  @default("Qatar")
+  website      String?
+  description  String?
+  facebook     String?
+  youtube      String?
+  whatsapp     String?
+  instagram    String?
+
+  availableFreeListings           Int       @default(0)
+  availableFreeFeatured           Int       @default(0)
+  subscriptionValidUntil          DateTime?
+  currentListingDiscountPercent   Float     @default(0)
+  currentFeaturingDiscountPercent Float     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("dealer_profiles")
+}
+
+model DealerApplication {
+  id           String @id @default(cuid())
+  submissionId String @unique
+
+  dealerName  String
+  contactName String
+  email       String
+  phone       String
+
+  tradeNumber        String?
+  reraNumber         String?
+  address            String?
+  city               String?
+  country            String  @default("Qatar")
+  website            String?
+  description        String?
+  additionalContacts Json?
+
+  status      ApplicationStatus @default(DRAFT)
+  currentStep Int               @default(1)
+
+  editToken       String?   @unique
+  editTokenExpiry DateTime?
+
+  dealerUserId String? @unique
+  dealerUser   User?   @relation("ApprovedDealerUser", fields: [dealerUserId], references: [id])
+
+  documents DealerDocument[]
+  reviews   ApplicationReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("dealer_applications")
+}
+
+model DealerDocument {
+  id            String            @id @default(cuid())
+  applicationId String
+  application   DealerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentType  DocumentType
+  originalName  String
+  minioKey      String
+  mimeType      String?
+  sizeBytes     Int?
+  uploadedAt    DateTime          @default(now())
+
+  @@map("dealer_documents")
+}
+
+model ApplicationReview {
+  id            String            @id @default(cuid())
+  applicationId String
+  application   DealerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  action        String
+  message       String?
+  reviewedById  String
+  reviewedBy    User              @relation(fields: [reviewedById], references: [id])
+  reviewedAt    DateTime          @default(now())
+
+  @@map("application_reviews")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Listing (enhanced)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Listing {
+  id String @id @default(cuid())
+
+  // ── Core ──────────────────────────────────────────────────────────────────
+  propertyName  String
+  referenceCode String?           @unique
+  slug          String?           @unique
+  description   String?
+  purpose       ListingPurpose    @default(SALE)
+  typeId        String
+  type          ListingTypeOption @relation(fields: [typeId], references: [id])
+
+  // ── GPS & Spam Detection ──────────────────────────────────────────────────
+  latitude             Float?
+  longitude            Float?
+  /// Flagged when another listing with same name exists within 50 m
+  isPotentialDuplicate Boolean @default(false)
+  /// CUID of the suspected original listing (set by service during spam check)
+  duplicateOfId        String?
+
+  // ── Common Property Details ───────────────────────────────────────────────
+  bedrooms      Int?
+  bathrooms     Int?
+  area          Float? // sqm
+  livingRooms   Int?
+  parkingSpaces Int?
+  floorNumber   Int?
+  totalFloors   Int?
+  yearBuilt     Int?
+  furnishingId  String?
+  furnishing    FurnishingOption? @relation(fields: [furnishingId], references: [id])
+
+  // ── Type-Specific Extra Properties (stored as JSON) ───────────────────────
+  /// Villa extras: gardenArea(sqm), privatePool(bool), privateGym(bool), driverRoom(bool), outdoorKitchen(bool)
+  /// Apartment extras: buildingAmenities([]), viewType(string), serviceChargePerSqm(float)
+  /// Townhouse extras: gardenArea(sqm), rooftopTerrace(bool), basement(bool)
+  /// Penthouse extras: privateTerrace(sqm), privatePool(bool), skyLounge(bool)
+  /// Studio extras: loftStyle(bool), mezzanineLevel(bool)
+  /// Commercial extras: officeGrade(string), numberOfUnits(int), annualServiceCharge(float), zoning(string), fitOutStatus(string)
+  /// Land extras: plotArea(sqm), roadFrontage(float), zoningType(string), buildPermitAvailable(bool), utilityConnected(bool)
+  extraProperties Json?
+
+  // ── Price ─────────────────────────────────────────────────────────────────
+  price           Float
+  priceNegotiable Boolean @default(false)
+
+  // ── Qatar Address ─────────────────────────────────────────────────────────
+  addressLine1   String?
+  addressLine2   String?
+  areaName       String? // e.g. "West Bay", "The Pearl", "Lusail"
+  municipalityId String?
+  municipality   MunicipalityOption? @relation(fields: [municipalityId], references: [id])
+  country        String              @default("Qatar")
+
+  // ── Contact ───────────────────────────────────────────────────────────────
+  contactPhone    String?
+  contactWhatsapp String?
+  contactVerified Boolean @default(false)
+
+  // ── Amenities & Tags ──────────────────────────────────────────────────────
+  amenities     AmenityOption[]
+  nearbyTags    NearbyTagOption[]
+  /// Free-text additional info
+  otherFeatures String?
+
+  // ── Workflow ──────────────────────────────────────────────────────────────
+  status          ListingStatus        @default(PENDING)
+  submissionCount Int                  @default(1)
+  paymentStatus   ListingPaymentStatus @default(FREE)
+  stripeSessionId String?              @unique
+  /// Standalone PaymentIntent created alongside the Checkout Session, for mobile native payment
+  /// (Checkout Session's own PaymentIntent isn't reliably available until payment completes)
+  stripePaymentIntentId String? @unique
+  /// Amount actually charged for a pay-per-listing submission (QAR), set once Stripe confirms payment
+  paidAmount      Float?
+  /// Timestamp the listing was marked SOLD (used for admin sales analytics)
+  soldAt          DateTime?
+
+  // ── Relations ─────────────────────────────────────────────────────────────
+  createdById           String
+  createdBy             User                   @relation(fields: [createdById], references: [id])
+  photos                ListingPhoto[]
+  reviews               ListingReview[]
+  conversations         ChatConversation[]
+  wishlistedBy          Wishlist[]
+  visits                PropertyVisit[]
+  featuredSubscriptions FeaturedSubscription[]
+  trackingLogs          ListingTrackingLog[]
+  /// Set if this listing was created from a bulk-upload draft
+  sourceDraft           ListingDraft?
+
+  impressionsCount    Int @default(0)
+  viewsCount          Int @default(0)
+  reachCount          Int @default(0)
+  /// Number of times a user tapped "Chat on WhatsApp" for this listing
+  whatsappClicksCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("listings")
+}
+
+model ListingTrackingLog {
+  id        String          @id @default(cuid())
+  listingId String
+  listing   Listing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  deviceId  String
+  type      TrackingLogType
+  createdAt DateTime        @default(now())
+
+  @@index([listingId, deviceId, type, createdAt])
+  @@map("listing_tracking_logs")
+}
+
+/// Individual photo with sort order for a listing
+model ListingPhoto {
+  id         String   @id @default(cuid())
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url        String
+  minioKey   String?
+  caption    String?
+  sortOrder  Int      @default(0)
+  uploadedAt DateTime @default(now())
+
+  @@map("listing_photos")
+}
+
+/// Full audit trail — every approve / reject / resubmit / admin-edit action
+model ListingReview {
+  id           String              @id @default(cuid())
+  listingId    String
+  listing      Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  action       ListingReviewAction
+  /// Human-readable note (rejection reason, moderator note, etc.)
+  message      String?
+  /// Snapshot of listing data at time of action (for super admin history)
+  snapshot     Json?
+  reviewedById String?
+  reviewedBy   User?               @relation(fields: [reviewedById], references: [id])
+  reviewedAt   DateTime            @default(now())
+
+  @@map("listing_reviews")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dealer Bulk Listing Upload (JSON / Excel / CSV → draft rows for review)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ListingDraftSource {
+  JSON
+  EXCEL
+  CSV
+}
+
+enum ListingDraftStatus {
+  /// Parsed and stored, not yet turned into a real listing
+  PENDING
+  /// Consumed by POST /listings (draftId) — a real Listing now exists
+  USED
+  /// Dealer discarded it without creating a listing
+  DISCARDED
+}
+
+/// One row from a dealer's bulk JSON/Excel/CSV upload, held here for review/editing
+/// before being turned into a real Listing via POST /listings { draftId }.
+model ListingDraft {
+  id String @id @default(cuid())
+
+  /// Groups every row from a single upload together
+  batchId   String
+  source    ListingDraftSource
+  /// 1-indexed row position in the uploaded file (for the dealer to locate/fix it)
+  rowNumber Int
+
+  /// The dealer agency this draft belongs to (always the dealer, even if a staff member uploaded it)
+  dealerUserId String
+  dealerUser   User   @relation("ListingDraftAgency", fields: [dealerUserId], references: [id], onDelete: Cascade)
+  /// The actual uploader (dealer or dealer staff)
+  createdById  String
+  createdBy    User   @relation("ListingDraftUploader", fields: [createdById], references: [id])
+
+  status ListingDraftStatus @default(PENDING)
+  /// Parsed row, shaped like CreateListingDto (propertyName, purpose, typeId, price, photos[], ...)
+  data   Json
+  /// Validation problems found at parse time (missing required fields, unresolvable type/municipality, etc.)
+  /// Empty array = row parsed cleanly. Dealers can still submit — server re-validates at creation time.
+  errors Json?
+
+  /// Set once this draft has been turned into a real listing
+  listingId String?  @unique
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dealerUserId, status])
+  @@index([batchId])
+  @@map("listing_drafts")
+}
+
+model OtpRecord {
+  id        String   @id @default(cuid())
+  phone     String
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("otp_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chat / Messaging
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Links DEALER_STAFF users to their parent DEALER user
+model DealerStaff {
+  id           String                  @id @default(cuid())
+  dealerUserId String
+  staffUserId  String                  @unique
+  /// Display name / position inside the agency
+  position     String?
+  /// Permissions granted to this staff member by the dealer
+  permissions  DealerStaffPermission[]
+  isActive     Boolean                 @default(true)
+  dealerUser   User                    @relation("DealerStaffOwner", fields: [dealerUserId], references: [id], onDelete: Cascade)
+  staffUser    User                    @relation("DealerStaffMember", fields: [staffUserId], references: [id], onDelete: Cascade)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@map("dealer_staff")
+}
+
+/// One conversation per (enquiring user + listing).
+/// Participants = enquiring user + property owner (createdBy) + dealer + all dealer staff.
+model ChatConversation {
+  id        String   @id @default(cuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("ConversationUser", fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages     ChatMessage[]
+  participants ChatParticipant[]
+
+  @@unique([listingId, userId])
+  @@map("chat_conversations")
+}
+
+/// Tracks every participant in a conversation
+model ChatParticipant {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation("ConversationParticipant", fields: [userId], references: [id])
+  joinedAt       DateTime         @default(now())
+
+  @@unique([conversationId, userId])
+  @@map("chat_participants")
+}
+
+/// Individual message in a conversation
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User             @relation("MessageSender", fields: [senderId], references: [id])
+  type           MessageType      @default(TEXT)
+  /// Text body (for TEXT type)
+  content        String?
+  /// MinIO URL (for IMAGE type)
+  mediaUrl       String?
+  /// Latitude (for LOCATION type)
+  latitude       Float?
+  /// Longitude (for LOCATION type)
+  longitude      Float?
+  /// Human-readable location label (for LOCATION type)
+  locationLabel  String?
+  createdAt      DateTime         @default(now())
+
+  @@map("chat_messages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Support Tickets
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A support ticket raised by any authenticated user or dealer.
+model SupportTicket {
+  id String @id @default(cuid())
+
+  /// The user who raised the ticket
+  submitterId String
+  submitter   User   @relation("TicketSubmitter", fields: [submitterId], references: [id])
+
+  category TicketCategory
+  subject  String
+  message  String         @db.Text
+  status   TicketStatus   @default(OPEN)
+
+  /// For REPORT_LISTING — the listing being reported (optional reference, not a FK constraint)
+  listingId String?
+
+  /// For REPORT_USER — the user being reported
+  reportedUserId String?
+  reportedUser   User?   @relation("ReportedUser", fields: [reportedUserId], references: [id])
+
+  /// Moderator / admin assigned to handle this ticket
+  assignedToId String?
+  assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
+
+  replies TicketReply[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("support_tickets")
+}
+
+/// A reply message on a support ticket (by admin or user)
+model TicketReply {
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("TicketReplyAuthor", fields: [authorId], references: [id])
+
+  message String  @db.Text
+  /// true = reply from admin/moderator, false = reply from ticket submitter
+  isAdmin Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("ticket_replies")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wishlists
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@map("wishlists")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Property Visits
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PropertyVisit {
+  id        String  @id @default(cuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  visitorId String
+  visitor   User    @relation("VisitVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
+  ownerId   String
+  owner     User    @relation("VisitOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  scheduledAt DateTime
+  proposedAt  DateTime? // For reconfirmation
+  status      VisitStatus @default(PENDING)
+  notes       String?     @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("property_visits")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Featured Listings
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Admin-configured plan that defines where and how long a property is featured
+model FeaturedPlan {
+  id           String                      @id @default(cuid())
+  name         String // e.g. "7-Day Multi-Location Boost"
+  /// One or more placement locations included in this plan
+  locations    FeaturedPlacementLocation[]
+  duration     FeaturedPlanDuration
+  durationDays Int // 7, 20, or 30
+  price        Float // in QAR
+  isActive     Boolean                     @default(true)
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+
+  subscriptions FeaturedSubscription[]
+
+  @@map("featured_plans")
+}
+
+/// A listing that has been boosted using a featured plan
+model FeaturedSubscription {
+  id        String       @id @default(cuid())
+  listingId String
+  listing   Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      FeaturedPlan @relation(fields: [planId], references: [id])
+
+  /// Denormalised for fast filtering by location without joining
+  location FeaturedPlacementLocation
+
+  startDate DateTime
+  endDate   DateTime
+
+  paymentStatus         FeaturedPaymentStatus @default(PENDING)
+  stripePaymentIntentId String?
+  stripeSessionId       String?               @unique
+  paidAmount            Float?
+  /// Discount % applied from dealer's active subscription plan
+  discountApplied       Float?
+
+  /// Null = self-service by property owner; set when admin adds directly
+  addedByAdminId String?
+  addedByAdmin   User?   @relation("AdminFeaturedBoosts", fields: [addedByAdminId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("UserFeaturedBoosts", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("featured_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dynamic Options
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AmenityOption {
+  id        String    @id @default(cuid())
+  title     String    @unique
+  image     String?
+  listings  Listing[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("amenity_options")
+}
+
+model NearbyTagOption {
+  id        String    @id @default(cuid())
+  title     String    @unique
+  image     String?
+  listings  Listing[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("nearby_tag_options")
+}
+
+model FurnishingOption {
+  id        String    @id @default(cuid())
+  title     String    @unique
+  listings  Listing[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("furnishing_options")
+}
+
+model ListingTypeOption {
+  id        String    @id @default(cuid())
+  title     String    @unique
+  image     String?
+  listings  Listing[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("listing_type_options")
+}
+
+model MunicipalityOption {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  image     String?
+  latitude  Float?
+  longitude Float?
+  isPopular Boolean   @default(false)
+  isActive  Boolean   @default(true)
+  listings  Listing[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("municipality_options")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dealer Subscription Plans
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Super-admin-configured agency plan for dealers (controls listing quota + boost discount)
+model DealerSubscriptionPlan {
+  id           String @id @default(cuid())
+  name         String // e.g. "Gold Agency Plan"
+  /// Max number of active listings allowed under this plan (0 = unlimited)
+  maxListings  Int    @default(0)
+  /// Plan validity in days
+  validityDays Int
+  /// Price in QAR (0 = free plan)
+  price        Float  @default(0)
+
+  /// Number of free listings granted instantly upon purchase
+  freeListings           Int   @default(0)
+  /// Number of free featured listings granted instantly upon purchase
+  freeFeaturedListings   Int   @default(0)
+  /// Discount % applied for normal listing creation when out of quota (0-100)
+  listingDiscountPercent Float @default(0)
+  /// Discount % applied when dealer requests a featured boost (0–100)
+  boostDiscountPercent   Float @default(0)
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions DealerSubscription[]
+
+  @@map("dealer_subscription_plans")
+}
+
+/// A dealer's active (or historical) subscription to a DealerSubscriptionPlan
+model DealerSubscription {
+  id       String                 @id @default(cuid())
+  dealerId String
+  dealer   User                   @relation("DealerSubscriptions", fields: [dealerId], references: [id])
+  planId   String
+  plan     DealerSubscriptionPlan @relation(fields: [planId], references: [id])
+
+  startDate DateTime
+  endDate   DateTime
+
+  paymentStatus         DealerSubPaymentStatus @default(PENDING)
+  stripePaymentIntentId String?
+  stripeSessionId       String?                @unique
+  paidAmount            Float?
+
+  /// Set when super-admin assigns plan directly (bypasses Stripe)
+  assignedByAdminId String?
+  assignedByAdmin   User?   @relation("AssignedDealerSubscriptions", fields: [assignedByAdminId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("dealer_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Invoices
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One common, Qatar-formatted invoice/receipt record for every billable action in the
+/// app — a listing publication payment, a featured-listing boost, or a dealer subscription
+/// plan purchase. Generated automatically the moment each of those actions completes
+/// (whether actually charged via Stripe, or covered by free quota / a full discount /
+/// an admin grant), so every account has one continuous, sequentially-numbered billing
+/// history behind a single common API regardless of which of the three flows it came from.
+model Invoice {
+  id            String        @id @default(cuid())
+  /// Sequential, gapless, year-scoped — e.g. "INV-2026-000123"
+  invoiceNumber String        @unique
+  type          InvoiceType
+  status        InvoiceStatus @default(PAID)
+
+  /// The account being billed — a USER, or a DEALER (dealer-staff actions are billed to
+  /// their parent dealer, since quota/payment is always drawn from the dealer's account)
+  billedToId          String
+  billedTo            User    @relation("InvoicesBilledTo", fields: [billedToId], references: [id])
+  /// Snapshot of the buyer's details at invoice time (kept even if the account is edited later)
+  billedToName        String
+  billedToEmail       String?
+  billedToPhone       String?
+  /// Set only when billedTo is a DEALER
+  billedToCompany     String?
+  billedToTradeNumber String?
+  billedToAddress     String?
+
+  /// Invoice title, e.g. "Featured Listing — The Pearl Villa"
+  description String
+  /// Structured breakdown for frontend receipt rendering: [{ description, quantity, unitPrice, amount }]
+  lineItems   Json
+
+  /// id of the Listing / FeaturedSubscription / DealerSubscription this invoice documents
+  referenceId String
+
+  subtotal      Float
+  vatRate       Float     @default(0)
+  vatAmount     Float     @default(0)
+  totalAmount   Float
+  currency      String    @default("QAR")
+  paymentMethod String    @default("Stripe")
+  paidAt        DateTime?
+
+  /// MinIO object key of the generated PDF (same file served by the download endpoint and
+  /// attached to the invoice email)
+  pdfObjectKey String?
+  emailedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([billedToId])
+  @@index([type])
+  @@index([referenceId])
+  @@map("invoices")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Banners
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Banner {
+  id         String    @id @default(cuid())
+  title      String?
+  imageUrl   String
+  linkUrl    String?
+  position   Int       @default(0)
+  isFeatured Boolean   @default(false)
+  isActive   Boolean   @default(true)
+  startDate  DateTime?
+  endDate    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("banners")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero Banners
+// ─────────────────────────────────────────────────────────────────────────────
+
+model HeroBanner {
+  id                String  @id @default(cuid())
+  mobileImageUrl    String?
+  webImageUrl       String
+  title             String?
+  arabicTitle       String?
+  subtitle          String?
+  description       String?
+  arabicHeroText    String?
+  actionUrl         String?
+  actionButtonName  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hero_banners")
+}
+
+model GeocodeCache {
+  id        String   @id @default(cuid())
+  keyword   String   @unique
+  title     String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("geocode_caches")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// System Settings
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}

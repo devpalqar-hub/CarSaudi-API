@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VillasQatar Chat Tester</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    /* ── Reset & base ───────────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-dark: #0f1117;
+      --bg-panel: #161822;
+      --bg-card: #1c1f2e;
+      --bg-input: #232638;
+      --border: #2a2d42;
+      --text: #e4e6f0;
+      --text-muted: #8b8fa7;
+      --accent-a: #6c5ce7;
+      --accent-a-light: #a29bfe;
+      --accent-b: #00b894;
+      --accent-b-light: #55efc4;
+      --danger: #e17055;
+      --success: #00b894;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --transition: 0.2s ease;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #161822 0%, #1c1f2e 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-brand .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .header-brand h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .header-brand h1 span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .header-config {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-config label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-config input {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 6px 12px;
+      font-size: 13px;
+      font-family: 'Inter', monospace;
+      width: 280px;
+      transition: border var(--transition);
+    }
+
+    .header-config input:focus {
+      outline: none;
+      border-color: var(--accent-a);
+    }
+
+    /* ── Main Layout ────────────────────────────────────────────────────────── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      height: calc(100vh - 56px);
+    }
+
+    /* ── Panel ──────────────────────────────────────────────────────────────── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      overflow: hidden;
+    }
+
+    .panel:first-child {
+      border-right: 1px solid var(--border);
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .panel-header .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .panel-header .dot.a {
+      background: var(--accent-a);
+      box-shadow: 0 0 8px var(--accent-a);
+    }
+
+    .panel-header .dot.b {
+      background: var(--accent-b);
+      box-shadow: 0 0 8px var(--accent-b);
+    }
+
+    .panel-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .panel-header .role-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(139, 143, 167, 0.15);
+      color: var(--text-muted);
+    }
+
+    .panel-status {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-status.disconnected {
+      background: rgba(225, 112, 85, 0.15);
+      color: var(--danger);
+    }
+
+    .panel-status.connected {
+      background: rgba(0, 184, 148, 0.15);
+      color: var(--success);
+    }
+
+    .panel-status.connecting {
+      background: rgba(253, 203, 110, 0.15);
+      color: #fdcb6e;
+    }
+
+    /* ── Login Form ─────────────────────────────────────────────────────────── */
+    .login-area {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .login-area h3 {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .login-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .login-row input,
+    .login-row select {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border var(--transition);
+    }
+
+    .login-row input:focus,
+    .login-row select:focus {
+      outline: none;
+      border-color: var(--accent-a);
+    }
+
+    .login-row select option {
+      background: var(--bg-card);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-a {
+      background: linear-gradient(135deg, var(--accent-a) 0%, #5a4bd1 100%);
+      color: #fff;
+    }
+
+    .btn-a:hover {
+      box-shadow: 0 4px 16px rgba(108, 92, 231, 0.4);
+    }
+
+    .btn-b {
+      background: linear-gradient(135deg, var(--accent-b) 0%, #00a382 100%);
+      color: #fff;
+    }
+
+    .btn-b:hover {
+      box-shadow: 0 4px 16px rgba(0, 184, 148, 0.4);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger) 0%, #d63031 100%);
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      box-shadow: 0 4px 16px rgba(225, 112, 85, 0.4);
+    }
+
+    /* ── Chat Controls (Join, Conversations) ───────────────────────────────── */
+    .chat-controls {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .chat-controls h3 {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .chat-controls-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-controls-row input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 7px 12px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    .chat-controls-row input:focus {
+      outline: none;
+      border-color: var(--accent-a);
+    }
+
+    /* ── Conversation list ──────────────────────────────────────────────────── */
+    .conv-list {
+      max-height: 120px;
+      overflow-y: auto;
+      padding: 6px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .conv-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background var(--transition);
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .conv-item:hover {
+      background: var(--bg-input);
+    }
+
+    .conv-item.active {
+      background: rgba(108, 92, 231, 0.15);
+    }
+
+    .conv-item .conv-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--bg-input);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .conv-item .conv-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .conv-item .conv-name {
+      font-weight: 600;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .conv-item .conv-preview {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Messages ───────────────────────────────────────────────────────────── */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .messages::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .msg {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      line-height: 1.5;
+      animation: msgIn 0.25s ease;
+      position: relative;
+      word-break: break-word;
+    }
+
+    @keyframes msgIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .msg.sent {
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.received {
+      align-self: flex-start;
+      background: var(--bg-card);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.sent.a-panel {
+      background: linear-gradient(135deg, var(--accent-a), #5a4bd1);
+      color: #fff;
+    }
+
+    .msg.sent.b-panel {
+      background: linear-gradient(135deg, var(--accent-b), #00a382);
+      color: #fff;
+    }
+
+    .msg .msg-meta {
+      font-size: 10px;
+      opacity: 0.65;
+      margin-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .msg.system {
+      align-self: center;
+      background: rgba(139, 143, 167, 0.1);
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .typing-indicator {
+      align-self: flex-start;
+      background: var(--bg-card);
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      border-bottom-left-radius: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .typing-indicator.visible {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 3px;
+    }
+
+    .typing-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: blink 1.4s infinite both;
+    }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes blink {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.25;
+        transform: scale(0.8);
+      }
+
+      40% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* ── Compose ────────────────────────────────────────────────────────────── */
+    .compose {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      background: var(--bg-panel);
+    }
+
+    .compose input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 10px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border var(--transition);
+    }
+
+    .compose input:focus {
+      outline: none;
+      border-color: var(--accent-a);
+    }
+
+    .compose input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .compose .btn {
+      border-radius: var(--radius);
+      padding: 10px 20px;
+    }
+
+    /* ── Event Log ──────────────────────────────────────────────────────────── */
+    .event-log {
+      max-height: 100px;
+      overflow-y: auto;
+      padding: 8px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .event-log::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .event-log::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .log-entry {
+      padding: 2px 0;
+      color: var(--text-muted);
+    }
+
+    .log-entry .log-time {
+      color: #636e8a;
+    }
+
+    .log-entry.log-success {
+      color: var(--success);
+    }
+
+    .log-entry.log-error {
+      color: var(--danger);
+    }
+
+    .log-entry.log-event {
+      color: var(--accent-a-light);
+    }
+
+    .log-entry.log-msg {
+      color: var(--accent-b-light);
+    }
+
+    /* ── Empty States ──────────────────────────────────────────────────────── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 40px;
+      opacity: 0.3;
+    }
+
+    .empty-state p {
+      max-width: 260px;
+      text-align: center;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- Header                                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="logo">VQ</div>
+      <h1>Chat Tester <span>— Any Role ↔ Any Role</span></h1>
+    </div>
+    <div class="header-config">
+      <label for="apiUrl">API URL:</label>
+      <input id="apiUrl" type="text" value="http://localhost:3000" placeholder="http://localhost:3000" />
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- Main Panels                                                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- ─── PANEL A (Left) ────────────────────────────────────────────────────── -->
+    <div class="panel" id="aPanel">
+      <div class="panel-header">
+        <div class="dot a"></div>
+        <h2>Person A</h2>
+        <span class="role-badge" id="aRole">—</span>
+        <span class="panel-status disconnected" id="aStatus">Disconnected</span>
+      </div>
+
+      <!-- Login -->
+      <div class="login-area" id="aLogin">
+        <h3>🔐 Login with any account (User, Dealer, Admin, etc.)</h3>
+        <div class="login-row">
+          <input id="aEmail" type="text" placeholder="Email or Phone" />
+          <input id="aPassword" type="password" placeholder="Password" />
+        </div>
+        <div class="login-row">
+          <button class="btn btn-a" onclick="doLoginAndConnect('a')">Login & Connect</button>
+          <button class="btn btn-outline btn-sm" onclick="loginWithToken('a')" title="Use a raw JWT token">Use
+            Token</button>
+        </div>
+      </div>
+
+      <!-- Chat Controls -->
+      <div class="chat-controls" id="aControls" style="display:none;">
+        <h3>Join or Load Conversations</h3>
+        <div class="chat-controls-row">
+          <input id="aListingId" type="text" placeholder="Listing ID to join..." />
+          <button class="btn btn-a btn-sm" onclick="joinConversation('a')">Join</button>
+          <button class="btn btn-outline btn-sm" onclick="loadConversations('a')">My Chats</button>
+          <button class="btn btn-danger btn-sm" onclick="disconnect('a')">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Conversations List -->
+      <div class="conv-list" id="aConvList" style="display:none;"></div>
+
+      <!-- Messages -->
+      <div class="messages" id="aMessages">
+        <div class="empty-state">
+          <div class="empty-icon">💬</div>
+          <p>Login with any account and join a conversation to start chatting</p>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="typing-indicator" id="aTyping">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <span id="aTypingName"></span> is typing…
+      </div>
+
+      <!-- Compose -->
+      <div class="compose" id="aCompose" style="display:none;">
+        <input id="aMsgInput" type="text" placeholder="Type a message..."
+          onkeydown="if(event.key==='Enter')sendMessage('a')" oninput="emitTyping('a')" />
+        <button class="btn btn-a" onclick="sendMessage('a')">Send</button>
+      </div>
+
+      <!-- Event Log -->
+      <div class="event-log" id="aLog"></div>
+    </div>
+
+    <!-- ─── PANEL B (Right) ───────────────────────────────────────────────────── -->
+    <div class="panel" id="bPanel">
+      <div class="panel-header">
+        <div class="dot b"></div>
+        <h2>Person B</h2>
+        <span class="role-badge" id="bRole">—</span>
+        <span class="panel-status disconnected" id="bStatus">Disconnected</span>
+      </div>
+
+      <!-- Login -->
+      <div class="login-area" id="bLogin">
+        <h3>🔐 Login with any account (User, Dealer, Admin, etc.)</h3>
+        <div class="login-row">
+          <input id="bEmail" type="text" placeholder="Email or Phone" />
+          <input id="bPassword" type="password" placeholder="Password" />
+        </div>
+        <div class="login-row">
+          <button class="btn btn-b" onclick="doLoginAndConnect('b')">Login & Connect</button>
+          <button class="btn btn-outline btn-sm" onclick="loginWithToken('b')" title="Use a raw JWT token">Use
+            Token</button>
+        </div>
+      </div>
+
+      <!-- Chat Controls -->
+      <div class="chat-controls" id="bControls" style="display:none;">
+        <h3>Conversations</h3>
+        <div class="chat-controls-row">
+          <input id="bListingId" type="text" placeholder="Listing ID to join..." />
+          <button class="btn btn-b btn-sm" onclick="joinConversation('b')">Join</button>
+          <button class="btn btn-outline btn-sm" onclick="loadConversations('b')">My Chats</button>
+          <button class="btn btn-danger btn-sm" onclick="disconnect('b')">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Conversations List -->
+      <div class="conv-list" id="bConvList" style="display:none;"></div>
+
+      <!-- Messages -->
+      <div class="messages" id="bMessages">
+        <div class="empty-state">
+          <div class="empty-icon">💬</div>
+          <p>Login with any account and join a conversation to start chatting</p>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="typing-indicator" id="bTyping">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <span id="bTypingName"></span> is typing…
+      </div>
+
+      <!-- Compose -->
+      <div class="compose" id="bCompose" style="display:none;">
+        <input id="bMsgInput" type="text" placeholder="Type a message..."
+          onkeydown="if(event.key==='Enter')sendMessage('b')" oninput="emitTyping('b')" />
+        <button class="btn btn-b" onclick="sendMessage('b')">Send</button>
+      </div>
+
+      <!-- Event Log -->
+      <div class="event-log" id="bLog"></div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // State — panels are now generic "a" and "b"
+    // ═══════════════════════════════════════════════════════════════════════════════
+    const state = {
+      a: { socket: null, token: null, userId: null, conversationId: null, profile: null },
+      b: { socket: null, token: null, userId: null, conversationId: null, profile: null },
+    };
+
+    function getApiUrl() {
+      return document.getElementById('apiUrl').value.replace(/\/+$/, '');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Logging
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function log(panel, text, cls = '') {
+      const el = document.getElementById(`${panel}Log`);
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${cls}`;
+      entry.innerHTML = `<span class="log-time">[${time}]</span> ${text}`;
+      el.appendChild(entry);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Status Badge
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function setStatus(panel, status) {
+      const el = document.getElementById(`${panel}Status`);
+      el.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+      el.className = `panel-status ${status}`;
+    }
+
+    function updateRoleBadge(panel) {
+      const el = document.getElementById(`${panel}Role`);
+      const profile = state[panel].profile;
+      if (profile) {
+        const role = profile.role || '?';
+        el.textContent = role;
+        // Color based on role
+        const roleColors = {
+          USER: 'rgba(108, 92, 231, 0.25)',
+          DEALER: 'rgba(0, 184, 148, 0.25)',
+          DEALER_STAFF: 'rgba(9, 132, 227, 0.25)',
+          SUPER_ADMIN: 'rgba(253, 203, 110, 0.25)',
+          MODERATOR: 'rgba(214, 48, 49, 0.25)',
+        };
+        const roleTextColors = {
+          USER: '#a29bfe',
+          DEALER: '#55efc4',
+          DEALER_STAFF: '#74b9ff',
+          SUPER_ADMIN: '#fdcb6e',
+          MODERATOR: '#fab1a0',
+        };
+        el.style.background = roleColors[role] || 'rgba(139, 143, 167, 0.15)';
+        el.style.color = roleTextColors[role] || 'var(--text-muted)';
+      } else {
+        el.textContent = '—';
+        el.style.background = '';
+        el.style.color = '';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Auth — Generic Login
+    // ═══════════════════════════════════════════════════════════════════════════════
+    async function doLogin(panel, identifier, password) {
+      const url = `${getApiUrl()}/api/auth/login`;
+      log(panel, `POST ${url}`, 'log-event');
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+        state[panel].token = data.access_token;
+        state[panel].profile = data.profile;
+        state[panel].userId = data.profile?.id;
+        log(panel, `✅ Logged in as <b>${data.profile?.name || data.profile?.email}</b> (${data.profile?.role})`, 'log-success');
+        updateRoleBadge(panel);
+        return data;
+      } catch (err) {
+        log(panel, `❌ Login failed: ${err.message}`, 'log-error');
+        throw err;
+      }
+    }
+
+    async function doLoginAndConnect(panel) {
+      const email = document.getElementById(`${panel}Email`).value.trim();
+      const pw = document.getElementById(`${panel}Password`).value.trim();
+      if (!email || !pw) return log(panel, '⚠️ Fill in email/phone and password', 'log-error');
+      try {
+        await doLogin(panel, email, pw);
+        connectSocket(panel);
+      } catch (_) { /* already logged */ }
+    }
+
+    function loginWithToken(panel) {
+      const token = prompt('Paste your JWT access_token:');
+      if (!token) return;
+      state[panel].token = token.trim();
+      log(panel, '🔑 Using manually provided JWT token', 'log-event');
+      connectSocket(panel);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Socket.IO
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function connectSocket(panel) {
+      if (state[panel].socket) {
+        state[panel].socket.disconnect();
+      }
+      setStatus(panel, 'connecting');
+      log(panel, '🔌 Connecting to WebSocket...', 'log-event');
+
+      const baseUrl = getApiUrl();
+      const socket = io(`${baseUrl}/chat`, {
+        auth: { token: state[panel].token },
+        transports: ['websocket', 'polling'],
+      });
+
+      state[panel].socket = socket;
+
+      socket.on('connect', () => {
+        log(panel, `✅ Socket connected (id: ${socket.id})`, 'log-success');
+        setStatus(panel, 'connected');
+        // Show controls, hide login
+        document.getElementById(`${panel}Login`).style.display = 'none';
+        document.getElementById(`${panel}Controls`).style.display = 'block';
+      });
+
+      socket.on('connected', (data) => {
+        log(panel, `🟢 Server: "${data.message}" | userId=${data.userId} role=${data.role}`, 'log-success');
+        if (data.userId) state[panel].userId = data.userId;
+        // Update role badge from server-confirmed data
+        if (data.role && state[panel].profile) {
+          state[panel].profile.role = data.role;
+          updateRoleBadge(panel);
+        }
+      });
+
+      socket.on('disconnect', (reason) => {
+        log(panel, `🔴 Disconnected: ${reason}`, 'log-error');
+        setStatus(panel, 'disconnected');
+      });
+
+      socket.on('connect_error', (err) => {
+        log(panel, `❌ Connection error: ${err.message}`, 'log-error');
+        setStatus(panel, 'disconnected');
+      });
+
+      socket.on('error', (err) => {
+        log(panel, `⚠️ Server error: ${err.message || JSON.stringify(err)}`, 'log-error');
+      });
+
+      socket.on('conversation_joined', (data) => {
+        log(panel, `📩 Joined conversation: ${data.conversation.id}`, 'log-success');
+        state[panel].conversationId = data.conversation.id;
+
+        // Show compose area
+        document.getElementById(`${panel}Compose`).style.display = 'flex';
+
+        // Render existing messages
+        const messagesEl = document.getElementById(`${panel}Messages`);
+        messagesEl.innerHTML = '';
+
+        // System message with listing info
+        if (data.listing) {
+          addSystemMessage(panel, `📋 ${data.listing.propertyName || 'Property'} — ${data.listing.purpose} — ${data.listing.price ? 'QAR ' + data.listing.price.toLocaleString() : 'N/A'}`);
+        }
+
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach(msg => renderMessage(panel, msg));
+        } else {
+          addSystemMessage(panel, 'No messages yet. Say hello! 👋');
+        }
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      });
+
+      socket.on('new_message', (msg) => {
+        log(panel, `💬 new_message from ${msg.sender?.name || msg.sender?.email || 'Unknown'}`, 'log-msg');
+        renderMessage(panel, msg);
+        // Hide typing indicator
+        document.getElementById(`${panel}Typing`).classList.remove('visible');
+      });
+
+      socket.on('typing', (data) => {
+        const typingEl = document.getElementById(`${panel}Typing`);
+        document.getElementById(`${panel}TypingName`).textContent = data.name || 'Someone';
+        typingEl.classList.add('visible');
+        // Auto-hide after 3s
+        clearTimeout(state[panel]._typingTimeout);
+        state[panel]._typingTimeout = setTimeout(() => typingEl.classList.remove('visible'), 3000);
+      });
+    }
+
+    function disconnect(panel) {
+      if (state[panel].socket) {
+        state[panel].socket.disconnect();
+        state[panel].socket = null;
+      }
+      state[panel].conversationId = null;
+      state[panel].profile = null;
+      setStatus(panel, 'disconnected');
+      updateRoleBadge(panel);
+      document.getElementById(`${panel}Login`).style.display = 'block';
+      document.getElementById(`${panel}Controls`).style.display = 'none';
+      document.getElementById(`${panel}Compose`).style.display = 'none';
+      document.getElementById(`${panel}ConvList`).style.display = 'none';
+      document.getElementById(`${panel}Messages`).innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">💬</div>
+      <p>Login with any account and join a conversation to start chatting</p>
+    </div>`;
+      log(panel, '🔌 Manually disconnected', 'log-event');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Join Conversation
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function joinConversation(panel) {
+      const listingId = document.getElementById(`${panel}ListingId`).value.trim();
+      if (!listingId) return log(panel, '⚠️ Enter a Listing ID first', 'log-error');
+      if (!state[panel].socket) return log(panel, '⚠️ Not connected', 'log-error');
+
+      log(panel, `📤 emit join_conversation { listingId: "${listingId}" }`, 'log-event');
+      state[panel].socket.emit('join_conversation', { listingId });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Load Conversations (REST)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    async function loadConversations(panel) {
+      const url = `${getApiUrl()}/api/chat/conversations`;
+      log(panel, `GET ${url}`, 'log-event');
+      try {
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${state[panel].token}` },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+
+        const listEl = document.getElementById(`${panel}ConvList`);
+        listEl.innerHTML = '';
+        listEl.style.display = data.length > 0 ? 'block' : 'none';
+
+        if (data.length === 0) {
+          log(panel, '📭 No conversations found', 'log-event');
+          return;
+        }
+
+        log(panel, `📬 Found ${data.length} conversation(s)`, 'log-success');
+
+        data.forEach(conv => {
+          const item = document.createElement('div');
+          item.className = 'conv-item' + (state[panel].conversationId === conv.id ? ' active' : '');
+          const lastMsg = conv.lastMessage;
+          const preview = lastMsg
+            ? (lastMsg.type === 'TEXT' ? lastMsg.content : `[${lastMsg.type}]`)
+            : 'No messages';
+          item.innerHTML = `
+        <div class="conv-icon">🏠</div>
+        <div class="conv-info">
+          <div class="conv-name">${conv.listing?.propertyName || 'Property'}</div>
+          <div class="conv-preview">${preview}</div>
+        </div>
+      `;
+          item.onclick = () => {
+            state[panel].conversationId = conv.id;
+            document.getElementById(`${panel}Compose`).style.display = 'flex';
+            loadMessageHistory(panel, conv.id);
+            // Mark active
+            listEl.querySelectorAll('.conv-item').forEach(c => c.classList.remove('active'));
+            item.classList.add('active');
+            // Also join the socket room
+            if (state[panel].socket) {
+              state[panel].socket.emit('join_conversation', { listingId: conv.listing?.id });
+            }
+          };
+          listEl.appendChild(item);
+        });
+      } catch (err) {
+        log(panel, `❌ Failed to load conversations: ${err.message}`, 'log-error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Load Message History (REST)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    async function loadMessageHistory(panel, conversationId) {
+      const url = `${getApiUrl()}/api/chat/conversations/${conversationId}/messages?page=1&limit=50`;
+      log(panel, `GET ${url}`, 'log-event');
+      try {
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${state[panel].token}` },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+
+        const messagesEl = document.getElementById(`${panel}Messages`);
+        messagesEl.innerHTML = '';
+
+        if (data.data && data.data.length > 0) {
+          data.data.forEach(msg => renderMessage(panel, msg));
+        } else {
+          addSystemMessage(panel, 'No messages yet. Say hello! 👋');
+        }
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        log(panel, `📨 Loaded ${data.data?.length || 0} message(s)`, 'log-success');
+      } catch (err) {
+        log(panel, `❌ Failed to load messages: ${err.message}`, 'log-error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Send Message
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function sendMessage(panel) {
+      const input = document.getElementById(`${panel}MsgInput`);
+      const text = input.value.trim();
+      if (!text) return;
+      if (!state[panel].socket) return log(panel, '⚠️ Not connected', 'log-error');
+      if (!state[panel].conversationId) return log(panel, '⚠️ Join a conversation first', 'log-error');
+
+      const payload = {
+        conversationId: state[panel].conversationId,
+        type: 'TEXT',
+        content: text,
+      };
+
+      log(panel, `📤 emit send_message`, 'log-event');
+      state[panel].socket.emit('send_message', payload);
+      input.value = '';
+      input.focus();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Typing Indicator
+    // ═══════════════════════════════════════════════════════════════════════════════
+    const typingThrottles = { a: 0, b: 0 };
+    function emitTyping(panel) {
+      const now = Date.now();
+      if (now - typingThrottles[panel] < 2000) return;
+      typingThrottles[panel] = now;
+      if (state[panel].socket && state[panel].conversationId) {
+        state[panel].socket.emit('typing', { conversationId: state[panel].conversationId });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Message Rendering
+    // ═══════════════════════════════════════════════════════════════════════════════
+    function renderMessage(panel, msg) {
+      const el = document.getElementById(`${panel}Messages`);
+      const div = document.createElement('div');
+      const isSent = msg.sender?.id === state[panel].userId;
+      div.className = `msg ${isSent ? 'sent' : 'received'} ${isSent ? panel + '-panel' : ''}`;
+
+      let body = '';
+      if (msg.type === 'TEXT') {
+        body = escapeHtml(msg.content || '');
+      } else if (msg.type === 'IMAGE') {
+        body = `<img src="${msg.mediaUrl}" alt="image" style="max-width:200px;border-radius:8px;" />`
+      } else if (msg.type === 'LOCATION') {
+        body = `📍 ${msg.locationLabel || ''} (${msg.latitude}, ${msg.longitude})`;
+      }
+
+      const time = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+      const sender = msg.sender?.name || msg.sender?.email || 'Unknown';
+
+      div.innerHTML = `
+    ${body}
+    <div class="msg-meta">
+      <span>${isSent ? 'You' : sender}</span>
+      <span>${time}</span>
+    </div>
+  `;
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function addSystemMessage(panel, text) {
+      const el = document.getElementById(`${panel}Messages`);
+      const div = document.createElement('div');
+      div.className = 'msg system';
+      div.textContent = text;
+      el.appendChild(div);
+    }
+
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
+    }
+  </script>
+
+</body>
+
+</html>
