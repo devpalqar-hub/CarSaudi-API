@@ -130,7 +130,7 @@ export class UsersController {
     description:
       'Accessible by SUPER_ADMIN and MODERATOR only. Filter by `role`, `isActive`, or ' +
       '`search` (name/email/phone). Each row includes `listingsCount` — the total number of ' +
-      'properties that user has created.',
+      'car listings that user has created.',
   })
   @ApiResponse({ status: 200, description: 'Paginated list of users' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -148,8 +148,8 @@ export class UsersController {
     description:
       'Accessible by SUPER_ADMIN and MODERATOR only. Returns contact info (email/phone), account ' +
       'status/role/auth provider, dealer profile summary (if the user is a DEALER), ' +
-      '`listingsCount` (total properties created), and `listings` — up to the 50 most recent ' +
-      'properties this user has created with their core details (status, price, type, location, views).',
+      '`listingsCount` (total car listings created), and `listings` — up to the 50 most recent ' +
+      'car listings this user has created with their core details (status, price, model, location, views).',
   })
   @ApiParam({ name: 'id', description: 'User CUID', example: 'clxyz...' })
   @ApiResponse({ status: 200, description: 'User found' })

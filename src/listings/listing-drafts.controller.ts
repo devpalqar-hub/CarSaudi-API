@@ -56,8 +56,8 @@ export class ListingDraftsController {
   @ApiOperation({
     summary: 'Dealer: Download the bulk-upload Excel template',
     description:
-      'One header row + one example row covering every supported column, incl. `amenities` / ' +
-      '`nearbyTags` (comma-separated titles or IDs), `type` / `furnishing` / `municipality` (title or ' +
+      'One header row + one example row covering every supported column, incl. `features` / ' +
+      '`tags` (comma-separated titles or IDs), `model` / `brand` / `carType` (title or ' +
       'ID), `extraProperties` (JSON string), and `photos` (comma-separated image URLs). ' +
       'A CSV upload uses the exact same column headers.',
   })
@@ -107,9 +107,9 @@ export class ListingDraftsController {
     summary:
       'Dealer: Bulk-upload listings from JSON, Excel, or CSV (max 500 rows, max 10 MB)',
     description:
-      'Parses the file and saves every row as a `ListingDraft` — nothing is published yet. Each row is ' +
-      'normalized to match the listing creation shape (`type`/`furnishing`/`municipality`/`amenities`/ ' +
-      '`nearbyTags` resolved by ID or title, `photos` split from a comma-separated URL list) and ' +
+      'Parses the file and saves every row as a `CarListingDraft` — nothing is published yet. Each row is ' +
+      'normalized to match the listing creation shape (`model`/`brand`/`carType`/`features`/ ' +
+      '`tags` resolved by ID or title, `photos` split from a comma-separated URL list) and ' +
       'validated; rows with problems are still saved with an `errors` array so the dealer can review ' +
       'and fix them before creating. Get the column layout via ' +
       '`GET /listings/bulk-upload/template`. Callable by a dealer or their staff — drafts belong to ' +

@@ -14,7 +14,7 @@ import { DealersModule } from './dealers/dealers.module';
 import { ChatModule } from './chat/chat.module';
 import { SupportModule } from './support/support.module';
 import { WishlistsModule } from './wishlists/wishlists.module';
-import { PropertyVisitsModule } from './property-visits/property-visits.module';
+import { CarVisitsModule } from './car-visits/car-visits.module';
 import { FeaturedModule } from './featured/featured.module';
 import { DealerSubscriptionsModule } from './dealer-subscriptions/dealer-subscriptions.module';
 import { BannersModule } from './banners/banners.module';
@@ -42,7 +42,7 @@ import { SearchModule } from './search/search.module';
     ChatModule,
     SupportModule,
     WishlistsModule,
-    PropertyVisitsModule,
+    CarVisitsModule,
     FeaturedModule,
     DealerSubscriptionsModule,
     BannersModule,

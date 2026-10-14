@@ -6,7 +6,7 @@ export class ForgotPasswordDto {
   @ApiProperty({
     description:
       'Account email address (SUPER_ADMIN, MODERATOR, DEALER or DEALER_STAFF)',
-    example: 'admin@villasqatar.com',
+    example: 'admin@carsaudi.com',
   })
   @IsEmail()
   @IsNotEmpty()

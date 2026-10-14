@@ -2,15 +2,14 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
 } from 'class-validator';
 
-export class CreateAmenityDto {
+export class CreateCarFeatureDto {
   @ApiProperty({
-    example: 'Swimming Pool',
-    description: 'The title of the amenity',
+    example: 'Sunroof',
+    description: 'The title of the car feature',
   })
   @IsString()
   @IsNotEmpty()
@@ -25,10 +24,10 @@ export class CreateAmenityDto {
   image?: string;
 }
 
-export class CreateNearbyTagDto {
+export class CreateCarTagDto {
   @ApiProperty({
-    example: 'School',
-    description: 'The title of the nearby tag',
+    example: 'Single Owner',
+    description: 'The title of the car tag',
   })
   @IsString()
   @IsNotEmpty()
@@ -43,20 +42,20 @@ export class CreateNearbyTagDto {
   image?: string;
 }
 
-export class CreateFurnishingOptionDto {
+export class CreateCarTypeDto {
   @ApiProperty({
-    example: 'Fully Furnished',
-    description: 'The title of the furnishing option',
+    example: 'SUV',
+    description: 'The title of the car type (body style)',
   })
   @IsString()
   @IsNotEmpty()
   title: string;
 }
 
-export class CreateListingTypeOptionDto {
+export class CreateCarModelDto {
   @ApiProperty({
-    example: 'Villa',
-    description: 'The title of the listing type',
+    example: 'Camry',
+    description: 'The title of the car model',
   })
   @IsString()
   @IsNotEmpty()
@@ -71,33 +70,23 @@ export class CreateListingTypeOptionDto {
   image?: string;
 }
 
-export class CreateMunicipalityDto {
-  @ApiProperty({ example: 'Doha', description: 'The name of the municipality' })
+export class CreateCarBrandDto {
+  @ApiProperty({ example: 'Toyota', description: 'The name of the car brand' })
   @IsString()
   @IsNotEmpty()
   name: string;
 
   @ApiPropertyOptional({
     example: 'https://example.com/image.png',
-    description: 'Optional image URL',
+    description: 'Optional brand logo image URL',
   })
   @IsString()
   @IsOptional()
   image?: string;
 
-  @ApiPropertyOptional({ example: 25.2854, description: 'Latitude' })
-  @IsNumber()
-  @IsOptional()
-  latitude?: number;
-
-  @ApiPropertyOptional({ example: 51.531, description: 'Longitude' })
-  @IsNumber()
-  @IsOptional()
-  longitude?: number;
-
   @ApiPropertyOptional({
     example: true,
-    description: 'Is the municipality popular?',
+    description: 'Is the brand popular?',
   })
   @IsBoolean()
   @IsOptional()
@@ -105,7 +94,7 @@ export class CreateMunicipalityDto {
 
   @ApiPropertyOptional({
     example: true,
-    description: 'Is the municipality active?',
+    description: 'Is the brand active?',
   })
   @IsBoolean()
   @IsOptional()

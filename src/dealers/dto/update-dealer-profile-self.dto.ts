@@ -18,7 +18,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'Contact phone number',
-    example: '+97455123456',
+    example: '+96655123456',
   })
   @IsOptional()
   @IsString()
@@ -27,7 +27,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'Short tagline for the agency',
-    example: "Qatar's #1 luxury property agency",
+    example: "Saudi Arabia's #1 trusted car dealership",
   })
   @IsOptional()
   @IsString()
@@ -52,7 +52,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'Agency website URL',
-    example: 'https://myagency.qa',
+    example: 'https://myagency.sa',
   })
   @IsOptional()
   @IsString()
@@ -61,7 +61,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'Short agency description / bio',
-    example: 'Specialising in luxury villas and penthouses across Qatar.',
+    example: 'Specialising in luxury and premium vehicles across Saudi Arabia.',
   })
   @IsOptional()
   @IsString()
@@ -85,7 +85,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'Facebook page/profile URL or handle',
-    example: 'https://facebook.com/pearlrealestate',
+    example: 'https://facebook.com/alfaisalmotors',
   })
   @IsOptional()
   @IsString()
@@ -93,7 +93,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'YouTube channel URL or handle',
-    example: 'https://youtube.com/@pearlrealestate',
+    example: 'https://youtube.com/@alfaisalmotors',
   })
   @IsOptional()
   @IsString()
@@ -101,7 +101,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'WhatsApp contact number or link',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsOptional()
   @IsString()
@@ -109,7 +109,7 @@ export class UpdateDealerProfileSelfDto {
 
   @ApiPropertyOptional({
     description: 'Instagram handle or profile URL',
-    example: 'https://instagram.com/pearlrealestate',
+    example: 'https://instagram.com/alfaisalmotors',
   })
   @IsOptional()
   @IsString()

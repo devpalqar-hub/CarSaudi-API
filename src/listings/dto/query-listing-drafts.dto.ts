@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ListingDraftStatus } from '@prisma/client';
+import { CarListingDraftStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
@@ -29,10 +29,10 @@ export class QueryListingDraftsDto {
   batchId?: string;
 
   @ApiPropertyOptional({
-    enum: ListingDraftStatus,
+    enum: CarListingDraftStatus,
     description: 'Filter by draft status',
   })
   @IsOptional()
-  @IsEnum(ListingDraftStatus)
-  status?: ListingDraftStatus;
+  @IsEnum(CarListingDraftStatus)
+  status?: CarListingDraftStatus;
 }

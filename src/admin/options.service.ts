@@ -5,119 +5,116 @@ import { PrismaService } from '../prisma/prisma.service';
 export class OptionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAmenities(search?: string) {
-    return this.prisma.amenityOption.findMany({
+  getCarFeatures(search?: string) {
+    return this.prisma.carFeatureOption.findMany({
       where: search
         ? { title: { contains: search, mode: 'insensitive' } }
         : undefined,
     });
   }
 
-  createAmenity(dto: { title: string; image?: string }) {
-    return this.prisma.amenityOption.create({ data: dto });
+  createCarFeature(dto: { title: string; image?: string }) {
+    return this.prisma.carFeatureOption.create({ data: dto });
   }
 
-  updateAmenity(id: string, dto: { title?: string; image?: string }) {
-    return this.prisma.amenityOption.update({ where: { id }, data: dto });
+  updateCarFeature(id: string, dto: { title?: string; image?: string }) {
+    return this.prisma.carFeatureOption.update({ where: { id }, data: dto });
   }
 
-  deleteAmenity(id: string) {
-    return this.prisma.amenityOption.delete({ where: { id } });
+  deleteCarFeature(id: string) {
+    return this.prisma.carFeatureOption.delete({ where: { id } });
   }
 
-  getNearbyTags(search?: string) {
-    return this.prisma.nearbyTagOption.findMany({
+  getCarTags(search?: string) {
+    return this.prisma.carTagOption.findMany({
       where: search
         ? { title: { contains: search, mode: 'insensitive' } }
         : undefined,
     });
   }
 
-  createNearbyTag(dto: { title: string; image?: string }) {
-    return this.prisma.nearbyTagOption.create({ data: dto });
+  createCarTag(dto: { title: string; image?: string }) {
+    return this.prisma.carTagOption.create({ data: dto });
   }
 
-  updateNearbyTag(id: string, dto: { title?: string; image?: string }) {
-    return this.prisma.nearbyTagOption.update({ where: { id }, data: dto });
+  updateCarTag(id: string, dto: { title?: string; image?: string }) {
+    return this.prisma.carTagOption.update({ where: { id }, data: dto });
   }
 
-  deleteNearbyTag(id: string) {
-    return this.prisma.nearbyTagOption.delete({ where: { id } });
+  deleteCarTag(id: string) {
+    return this.prisma.carTagOption.delete({ where: { id } });
   }
 
-  getFurnishingOptions(search?: string) {
-    return this.prisma.furnishingOption.findMany({
+  getCarTypes(search?: string) {
+    return this.prisma.carTypeOption.findMany({
       where: search
         ? { title: { contains: search, mode: 'insensitive' } }
         : undefined,
     });
   }
 
-  createFurnishingOption(dto: { title: string }) {
-    return this.prisma.furnishingOption.create({ data: dto });
+  createCarType(dto: { title: string }) {
+    return this.prisma.carTypeOption.create({ data: dto });
   }
 
-  updateFurnishingOption(id: string, dto: { title?: string }) {
-    return this.prisma.furnishingOption.update({ where: { id }, data: dto });
+  updateCarType(id: string, dto: { title?: string }) {
+    return this.prisma.carTypeOption.update({ where: { id }, data: dto });
   }
 
-  deleteFurnishingOption(id: string) {
-    return this.prisma.furnishingOption.delete({ where: { id } });
+  deleteCarType(id: string) {
+    return this.prisma.carTypeOption.delete({ where: { id } });
   }
 
-  getListingTypes(search?: string) {
-    return this.prisma.listingTypeOption.findMany({
+  getCarModels(search?: string) {
+    return this.prisma.carModelOption.findMany({
       where: search
         ? { title: { contains: search, mode: 'insensitive' } }
         : undefined,
     });
   }
 
-  createListingType(dto: { title: string; image?: string }) {
-    return this.prisma.listingTypeOption.create({ data: dto });
+  createCarModel(dto: { title: string; image?: string }) {
+    return this.prisma.carModelOption.create({ data: dto });
   }
 
-  updateListingType(id: string, dto: { title?: string; image?: string }) {
-    return this.prisma.listingTypeOption.update({ where: { id }, data: dto });
+  updateCarModel(id: string, dto: { title?: string; image?: string }) {
+    return this.prisma.carModelOption.update({ where: { id }, data: dto });
   }
 
-  deleteListingType(id: string) {
-    return this.prisma.listingTypeOption.delete({ where: { id } });
+  deleteCarModel(id: string) {
+    return this.prisma.carModelOption.delete({ where: { id } });
   }
-  getMunicipalities(search?: string) {
-    return this.prisma.municipalityOption.findMany({
+
+  getCarBrands(search?: string) {
+    return this.prisma.carBrandOption.findMany({
       where: search
         ? { name: { contains: search, mode: 'insensitive' } }
         : undefined,
     });
   }
 
-  createMunicipality(dto: {
+  createCarBrand(dto: {
     name: string;
     image?: string;
-    latitude?: number;
-    longitude?: number;
     isPopular?: boolean;
     isActive?: boolean;
   }) {
-    return this.prisma.municipalityOption.create({ data: dto });
+    return this.prisma.carBrandOption.create({ data: dto });
   }
 
-  updateMunicipality(
+  updateCarBrand(
     id: string,
     dto: {
       name?: string;
       image?: string;
-      latitude?: number;
-      longitude?: number;
       isPopular?: boolean;
       isActive?: boolean;
     },
   ) {
-    return this.prisma.municipalityOption.update({ where: { id }, data: dto });
+    return this.prisma.carBrandOption.update({ where: { id }, data: dto });
   }
 
-  deleteMunicipality(id: string) {
-    return this.prisma.municipalityOption.delete({ where: { id } });
+  deleteCarBrand(id: string) {
+    return this.prisma.carBrandOption.delete({ where: { id } });
   }
 }

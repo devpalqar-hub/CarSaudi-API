@@ -38,7 +38,7 @@ export class AdminAddFeaturedDto {
 
   @ApiPropertyOptional({
     description:
-      "Amount to record as paid (QAR). Defaults to the plan's own price.",
+      "Amount to record as paid (SAR). Defaults to the plan's own price.",
     example: 150,
   })
   @IsOptional()

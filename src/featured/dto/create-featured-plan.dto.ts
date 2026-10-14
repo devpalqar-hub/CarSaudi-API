@@ -44,7 +44,7 @@ export class CreateFeaturedPlanDto {
   @IsEnum(FeaturedPlanDuration)
   duration: FeaturedPlanDuration;
 
-  @ApiProperty({ description: 'Plan price in QAR (0 = free)', example: 150 })
+  @ApiProperty({ description: 'Plan price in SAR (0 = free)', example: 150 })
   @IsNumber()
   @Min(0)
   price: number;

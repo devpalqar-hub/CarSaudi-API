@@ -24,7 +24,7 @@ const BRAND_PRIMARY = '#8a1538';
 const BRAND_PRIMARY_TINT = '#f8eef1';
 const BRAND_ACCENT = '#d39d55';
 
-const QAR = (n: number) => `QAR ${n.toFixed(2)}`;
+const SAR = (n: number) => `SAR ${n.toFixed(2)}`;
 
 const TYPE_LABEL: Record<string, string> = {
   LISTING_PAYMENT: 'Listing Publication',
@@ -33,10 +33,10 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 /**
- * Renders a Qatar-standard invoice/receipt PDF — one common layout shared by all three
+ * Renders a Saudi Arabia-standard invoice/receipt PDF — one common layout shared by all three
  * billable flows (listing payment, featured boost, dealer subscription). Amounts are shown
- * in QAR to 2 decimal places; a VAT line is always present (0% while Qatar has no general
- * VAT in effect) so the layout doesn't need to change if/when a rate is configured.
+ * in SAR to 2 decimal places; a VAT line is always present (defaults to 0%, configurable via
+ * the 15% Saudi Arabia general VAT rate) so the layout doesn't need to change if the rate changes.
  */
 export function buildInvoicePdf(
   invoice: Invoice,
@@ -60,7 +60,7 @@ export function buildInvoicePdf(
     drawWatermark(doc);
 
     // ── Header — seller ─────────────────────────────────────────────────────
-    // The logo already carries the "Villas Qatar" wordmark, so it's the sole
+    // The logo already carries the "Car Saudi" wordmark, so it's the sole
     // brand mark here — no duplicate text title alongside it.
     let headerTextY = 50;
     if (fs.existsSync(LOGO_COLOR_PATH)) {
@@ -194,11 +194,11 @@ export function buildInvoicePdf(
           width: 50,
           align: 'right',
         })
-        .text(QAR(item.unitPrice), col.unit, y + 5, {
+        .text(SAR(item.unitPrice), col.unit, y + 5, {
           width: 90,
           align: 'right',
         })
-        .text(QAR(item.amount), col.amount, y + 5, {
+        .text(SAR(item.amount), col.amount, y + 5, {
           width: rowRight - col.amount - 8,
           align: 'right',
         });
@@ -214,7 +214,7 @@ export function buildInvoicePdf(
 
     doc.font('Helvetica').fontSize(10).fillColor('#333');
     doc.text('Subtotal', totalsLabelX, y, { width: 90, align: 'right' });
-    doc.text(QAR(invoice.subtotal), col.amount, y, {
+    doc.text(SAR(invoice.subtotal), col.amount, y, {
       width: totalsWidth,
       align: 'right',
     });
@@ -224,7 +224,7 @@ export function buildInvoicePdf(
       width: 90,
       align: 'right',
     });
-    doc.text(QAR(invoice.vatAmount), col.amount, y, {
+    doc.text(SAR(invoice.vatAmount), col.amount, y, {
       width: totalsWidth,
       align: 'right',
     });
@@ -235,7 +235,7 @@ export function buildInvoicePdf(
 
     doc.font('Helvetica-Bold').fontSize(12).fillColor(BRAND_PRIMARY);
     doc.text('Total Due', totalsLabelX, y, { width: 90, align: 'right' });
-    doc.text(QAR(invoice.totalAmount), col.amount, y, {
+    doc.text(SAR(invoice.totalAmount), col.amount, y, {
       width: totalsWidth,
       align: 'right',
     });
@@ -263,7 +263,7 @@ export function buildInvoicePdf(
       doc.page.height - 70,
       { width: pageWidth, align: 'center' },
     );
-    doc.text(`${seller.name} — State of Qatar`, 50, doc.page.height - 58, {
+    doc.text(`${seller.name} — Kingdom of Saudi Arabia`, 50, doc.page.height - 58, {
       width: pageWidth,
       align: 'center',
     });

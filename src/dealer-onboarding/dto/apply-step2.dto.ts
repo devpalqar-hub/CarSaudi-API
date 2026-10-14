@@ -16,12 +16,12 @@ export class AdditionalContactDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ example: '+97498765432' })
+  @ApiPropertyOptional({ example: '+96698765432' })
   @IsOptional()
   @IsString()
   phone?: string;
 
-  @ApiPropertyOptional({ example: 'sara@pearlrealestate.qa' })
+  @ApiPropertyOptional({ example: 'sara@alfaisalmotors.sa' })
   @IsOptional()
   @IsEmail()
   email?: string;
@@ -66,8 +66,8 @@ export class ApplyStep2Dto {
 
   @ApiPropertyOptional({
     description: 'Country',
-    default: 'Qatar',
-    example: 'Qatar',
+    default: 'Saudi Arabia',
+    example: 'Saudi Arabia',
   })
   @IsOptional()
   @IsString()
@@ -75,7 +75,7 @@ export class ApplyStep2Dto {
 
   @ApiPropertyOptional({
     description: 'Company website',
-    example: 'https://www.pearlrealestate.qa',
+    example: 'https://www.alfaisalmotors.sa',
   })
   @IsOptional()
   @IsUrl({}, { message: 'Website must be a valid URL' })
@@ -84,7 +84,7 @@ export class ApplyStep2Dto {
   @ApiPropertyOptional({
     description: 'Brief description of the agency and its specializations',
     example:
-      'Leading real estate agency specializing in luxury villas in Qatar.',
+      'Leading car dealership specializing in luxury vehicles in Saudi Arabia.',
   })
   @IsOptional()
   @IsString()

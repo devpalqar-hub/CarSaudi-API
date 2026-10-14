@@ -5,7 +5,7 @@ import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 export class CheckListingPhoneDto {
   @ApiProperty({
     description: 'Contact phone number to check verification status for',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsString()
   @IsNotEmpty()
@@ -13,7 +13,7 @@ export class CheckListingPhoneDto {
     typeof value === 'string' ? value.replace(/\s+/g, '').trim() : value,
   )
   @Matches(/^\+?[1-9]\d{6,14}$/, {
-    message: 'Phone number must be in E.164 format (e.g. +97412345678)',
+    message: 'Phone number must be in E.164 format (e.g. +96612345678)',
   })
   phone: string;
 }
@@ -21,7 +21,7 @@ export class CheckListingPhoneDto {
 export class VerifyListingPhoneOtpDto {
   @ApiProperty({
     description: 'Contact phone number to verify',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsString()
   @IsNotEmpty()
@@ -29,7 +29,7 @@ export class VerifyListingPhoneOtpDto {
     typeof value === 'string' ? value.replace(/\s+/g, '').trim() : value,
   )
   @Matches(/^\+?[1-9]\d{6,14}$/, {
-    message: 'Phone number must be in E.164 format (e.g. +97412345678)',
+    message: 'Phone number must be in E.164 format (e.g. +96612345678)',
   })
   phone: string;
 

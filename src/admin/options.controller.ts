@@ -17,18 +17,18 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { OptionsService } from './options.service';
 import { ApiQuery } from '@nestjs/swagger';
 import {
-  CreateAmenityDto,
-  CreateNearbyTagDto,
-  CreateFurnishingOptionDto,
-  CreateListingTypeOptionDto,
-  CreateMunicipalityDto,
+  CreateCarFeatureDto,
+  CreateCarTagDto,
+  CreateCarTypeDto,
+  CreateCarModelDto,
+  CreateCarBrandDto,
 } from './dto/create-option.dto';
 import {
-  UpdateAmenityDto,
-  UpdateNearbyTagDto,
-  UpdateFurnishingOptionDto,
-  UpdateListingTypeOptionDto,
-  UpdateMunicipalityDto,
+  UpdateCarFeatureDto,
+  UpdateCarTagDto,
+  UpdateCarTypeDto,
+  UpdateCarModelDto,
+  UpdateCarBrandDto,
 } from './dto/update-option.dto';
 
 @ApiTags('Admin Options')
@@ -39,162 +39,153 @@ import {
 export class OptionsController {
   constructor(private readonly optionsService: OptionsService) {}
 
-  @Get('amenities')
-  @ApiOperation({ summary: 'Get all amenities' })
+  @Get('car-features')
+  @ApiOperation({ summary: 'Get all car features' })
   @ApiQuery({
     name: 'search',
     required: false,
     type: String,
-    description: 'Search term for amenity title',
+    description: 'Search term for car feature title',
   })
-  getAmenities(@Query('search') search?: string) {
-    return this.optionsService.getAmenities(search);
+  getCarFeatures(@Query('search') search?: string) {
+    return this.optionsService.getCarFeatures(search);
   }
 
-  @Post('amenities')
-  @ApiOperation({ summary: 'Create an amenity' })
-  createAmenity(@Body() dto: CreateAmenityDto) {
-    return this.optionsService.createAmenity(dto);
+  @Post('car-features')
+  @ApiOperation({ summary: 'Create a car feature' })
+  createCarFeature(@Body() dto: CreateCarFeatureDto) {
+    return this.optionsService.createCarFeature(dto);
   }
 
-  @Patch('amenities/:id')
-  @ApiOperation({ summary: 'Update an amenity' })
-  updateAmenity(@Param('id') id: string, @Body() dto: UpdateAmenityDto) {
-    return this.optionsService.updateAmenity(id, dto);
+  @Patch('car-features/:id')
+  @ApiOperation({ summary: 'Update a car feature' })
+  updateCarFeature(@Param('id') id: string, @Body() dto: UpdateCarFeatureDto) {
+    return this.optionsService.updateCarFeature(id, dto);
   }
 
-  @Delete('amenities/:id')
-  @ApiOperation({ summary: 'Delete an amenity' })
-  deleteAmenity(@Param('id') id: string) {
-    return this.optionsService.deleteAmenity(id);
+  @Delete('car-features/:id')
+  @ApiOperation({ summary: 'Delete a car feature' })
+  deleteCarFeature(@Param('id') id: string) {
+    return this.optionsService.deleteCarFeature(id);
   }
 
-  @Get('nearby-tags')
-  @ApiOperation({ summary: 'Get all nearby tags' })
+  @Get('car-tags')
+  @ApiOperation({ summary: 'Get all car tags' })
   @ApiQuery({
     name: 'search',
     required: false,
     type: String,
-    description: 'Search term for nearby tag title',
+    description: 'Search term for car tag title',
   })
-  getNearbyTags(@Query('search') search?: string) {
-    return this.optionsService.getNearbyTags(search);
+  getCarTags(@Query('search') search?: string) {
+    return this.optionsService.getCarTags(search);
   }
 
-  @Post('nearby-tags')
-  @ApiOperation({ summary: 'Create a nearby tag' })
-  createNearbyTag(@Body() dto: CreateNearbyTagDto) {
-    return this.optionsService.createNearbyTag(dto);
+  @Post('car-tags')
+  @ApiOperation({ summary: 'Create a car tag' })
+  createCarTag(@Body() dto: CreateCarTagDto) {
+    return this.optionsService.createCarTag(dto);
   }
 
-  @Patch('nearby-tags/:id')
-  @ApiOperation({ summary: 'Update a nearby tag' })
-  updateNearbyTag(@Param('id') id: string, @Body() dto: UpdateNearbyTagDto) {
-    return this.optionsService.updateNearbyTag(id, dto);
+  @Patch('car-tags/:id')
+  @ApiOperation({ summary: 'Update a car tag' })
+  updateCarTag(@Param('id') id: string, @Body() dto: UpdateCarTagDto) {
+    return this.optionsService.updateCarTag(id, dto);
   }
 
-  @Delete('nearby-tags/:id')
-  @ApiOperation({ summary: 'Delete a nearby tag' })
-  deleteNearbyTag(@Param('id') id: string) {
-    return this.optionsService.deleteNearbyTag(id);
+  @Delete('car-tags/:id')
+  @ApiOperation({ summary: 'Delete a car tag' })
+  deleteCarTag(@Param('id') id: string) {
+    return this.optionsService.deleteCarTag(id);
   }
 
-  @Get('furnishing')
-  @ApiOperation({ summary: 'Get all furnishing options' })
+  @Get('car-types')
+  @ApiOperation({ summary: 'Get all car types (body styles)' })
   @ApiQuery({
     name: 'search',
     required: false,
     type: String,
-    description: 'Search term for furnishing option title',
+    description: 'Search term for car type title',
   })
-  getFurnishingOptions(@Query('search') search?: string) {
-    return this.optionsService.getFurnishingOptions(search);
+  getCarTypes(@Query('search') search?: string) {
+    return this.optionsService.getCarTypes(search);
   }
 
-  @Post('furnishing')
-  @ApiOperation({ summary: 'Create a furnishing option' })
-  createFurnishingOption(@Body() dto: CreateFurnishingOptionDto) {
-    return this.optionsService.createFurnishingOption(dto);
+  @Post('car-types')
+  @ApiOperation({ summary: 'Create a car type' })
+  createCarType(@Body() dto: CreateCarTypeDto) {
+    return this.optionsService.createCarType(dto);
   }
 
-  @Patch('furnishing/:id')
-  @ApiOperation({ summary: 'Update a furnishing option' })
-  updateFurnishingOption(
-    @Param('id') id: string,
-    @Body() dto: UpdateFurnishingOptionDto,
-  ) {
-    return this.optionsService.updateFurnishingOption(id, dto);
+  @Patch('car-types/:id')
+  @ApiOperation({ summary: 'Update a car type' })
+  updateCarType(@Param('id') id: string, @Body() dto: UpdateCarTypeDto) {
+    return this.optionsService.updateCarType(id, dto);
   }
 
-  @Delete('furnishing/:id')
-  @ApiOperation({ summary: 'Delete a furnishing option' })
-  deleteFurnishingOption(@Param('id') id: string) {
-    return this.optionsService.deleteFurnishingOption(id);
+  @Delete('car-types/:id')
+  @ApiOperation({ summary: 'Delete a car type' })
+  deleteCarType(@Param('id') id: string) {
+    return this.optionsService.deleteCarType(id);
   }
 
-  @Get('listing-types')
-  @ApiOperation({ summary: 'Get all listing types' })
+  @Get('car-models')
+  @ApiOperation({ summary: 'Get all car models' })
   @ApiQuery({
     name: 'search',
     required: false,
     type: String,
-    description: 'Search term for listing type title',
+    description: 'Search term for car model title',
   })
-  getListingTypes(@Query('search') search?: string) {
-    return this.optionsService.getListingTypes(search);
+  getCarModels(@Query('search') search?: string) {
+    return this.optionsService.getCarModels(search);
   }
 
-  @Post('listing-types')
-  @ApiOperation({ summary: 'Create a listing type' })
-  createListingType(@Body() dto: CreateListingTypeOptionDto) {
-    return this.optionsService.createListingType(dto);
+  @Post('car-models')
+  @ApiOperation({ summary: 'Create a car model' })
+  createCarModel(@Body() dto: CreateCarModelDto) {
+    return this.optionsService.createCarModel(dto);
   }
 
-  @Patch('listing-types/:id')
-  @ApiOperation({ summary: 'Update a listing type' })
-  updateListingType(
-    @Param('id') id: string,
-    @Body() dto: UpdateListingTypeOptionDto,
-  ) {
-    return this.optionsService.updateListingType(id, dto);
+  @Patch('car-models/:id')
+  @ApiOperation({ summary: 'Update a car model' })
+  updateCarModel(@Param('id') id: string, @Body() dto: UpdateCarModelDto) {
+    return this.optionsService.updateCarModel(id, dto);
   }
 
-  @Delete('listing-types/:id')
-  @ApiOperation({ summary: 'Delete a listing type' })
-  deleteListingType(@Param('id') id: string) {
-    return this.optionsService.deleteListingType(id);
+  @Delete('car-models/:id')
+  @ApiOperation({ summary: 'Delete a car model' })
+  deleteCarModel(@Param('id') id: string) {
+    return this.optionsService.deleteCarModel(id);
   }
 
-  @Get('municipalities')
-  @ApiOperation({ summary: 'Get all municipalities' })
+  @Get('car-brands')
+  @ApiOperation({ summary: 'Get all car brands' })
   @ApiQuery({
     name: 'search',
     required: false,
     type: String,
-    description: 'Search term for municipality name',
+    description: 'Search term for car brand name',
   })
-  getMunicipalities(@Query('search') search?: string) {
-    return this.optionsService.getMunicipalities(search);
+  getCarBrands(@Query('search') search?: string) {
+    return this.optionsService.getCarBrands(search);
   }
 
-  @Post('municipalities')
-  @ApiOperation({ summary: 'Create a municipality' })
-  createMunicipality(@Body() dto: CreateMunicipalityDto) {
-    return this.optionsService.createMunicipality(dto);
+  @Post('car-brands')
+  @ApiOperation({ summary: 'Create a car brand' })
+  createCarBrand(@Body() dto: CreateCarBrandDto) {
+    return this.optionsService.createCarBrand(dto);
   }
 
-  @Patch('municipalities/:id')
-  @ApiOperation({ summary: 'Update a municipality' })
-  updateMunicipality(
-    @Param('id') id: string,
-    @Body() dto: UpdateMunicipalityDto,
-  ) {
-    return this.optionsService.updateMunicipality(id, dto);
+  @Patch('car-brands/:id')
+  @ApiOperation({ summary: 'Update a car brand' })
+  updateCarBrand(@Param('id') id: string, @Body() dto: UpdateCarBrandDto) {
+    return this.optionsService.updateCarBrand(id, dto);
   }
 
-  @Delete('municipalities/:id')
-  @ApiOperation({ summary: 'Delete a municipality' })
-  deleteMunicipality(@Param('id') id: string) {
-    return this.optionsService.deleteMunicipality(id);
+  @Delete('car-brands/:id')
+  @ApiOperation({ summary: 'Delete a car brand' })
+  deleteCarBrand(@Param('id') id: string) {
+    return this.optionsService.deleteCarBrand(id);
   }
 }

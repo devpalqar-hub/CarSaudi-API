@@ -38,7 +38,7 @@ import { UpdateSystemSettingDto } from './dto/update-system-setting.dto';
 import { UpdateListingSettingsDto } from './dto/update-listing-settings.dto';
 
 @ApiTags('Admin')
-@Controller('protected/villasqatar/admin')
+@Controller('protected/carsaudi/admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -198,7 +198,7 @@ export class AdminController {
     description:
       'Returns aggregate analytics (total views, impressions, reach count, total listings) ' +
       'along with a paginated list of individual listings and their metrics. ' +
-      'Supports filtering by search, status, purpose, typeId, dealerId, date range, and sorting. ' +
+      'Supports filtering by search, status, purpose, modelId, dealerId, date range, and sorting. ' +
       'Requires SUPER_ADMIN role or MODERATOR role with VIEW_ANALYTICS permission.',
   })
   @ApiResponse({
@@ -225,7 +225,7 @@ export class AdminController {
       'Single all-in-one platform-wide analytics dashboard. Returns: revenue broken down by source ' +
       '(dealer subscriptions paid, featured-listing boosts paid, pay-per-listing charges paid) plus a ' +
       'combined total — each with an all-time figure and a figure for the selected date range; listing ' +
-      'counts including new properties added and total/new property sales (count + value); user growth ' +
+      'counts including new listings added and total/new car sales (count + value); user growth ' +
       '(total/new users, total/new dealers, active dealers, dealer staff, moderators); platform-wide ' +
       'engagement (views, impressions, reach, WhatsApp clicks, chat conversations); active/expiring ' +
       'subscription and featured-boost counts; the top 5 revenue-generating dealers; and a revenue + ' +
@@ -254,7 +254,7 @@ export class AdminController {
   @ApiOperation({
     summary: 'Admin: Get listing payment settings',
     description:
-      'Returns `pricePerListing` (QAR charged once a user/dealer is outside their free quota) and ' +
+      'Returns `pricePerListing` (SAR charged once a user/dealer is outside their free quota) and ' +
       '`userFreeListingsLimit` (free listings a non-dealer USER gets before payment is required). ' +
       'Dealer free-listing quota is managed separately via dealer subscription plans. ' +
       'Requires SUPER_ADMIN role or MODERATOR role with LISTING_SETTINGS_VIEW permission.',

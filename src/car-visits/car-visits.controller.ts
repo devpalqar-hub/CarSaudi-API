@@ -21,7 +21,7 @@ import { IsDate, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { PropertyVisitsService } from './property-visits.service';
+import { CarVisitsService } from './car-visits.service';
 
 export class ScheduleVisitDto {
   @ApiProperty({
@@ -34,7 +34,7 @@ export class ScheduleVisitDto {
 
   @ApiProperty({
     required: false,
-    example: 'I want to see the backyard',
+    example: 'I want to take it for a test drive',
     description: 'Additional notes',
   })
   @IsOptional()
@@ -52,15 +52,15 @@ export class ReconfirmVisitDto {
   proposedAt: Date;
 }
 
-@ApiTags('Property Visits')
+@ApiTags('Car Visits')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
-@Controller('visits')
-export class PropertyVisitsController {
-  constructor(private readonly propertyVisitsService: PropertyVisitsService) {}
+@Controller('car-visits')
+export class CarVisitsController {
+  constructor(private readonly carVisitsService: CarVisitsService) {}
 
   @Post(':listingId')
-  @ApiOperation({ summary: 'Schedule a visit for a listing' })
+  @ApiOperation({ summary: 'Schedule a viewing/test-drive for a car listing' })
   @ApiParam({ name: 'listingId', description: 'ID of the listing' })
   @ApiResponse({ status: 201, description: 'Visit request created' })
   scheduleVisit(
@@ -70,7 +70,7 @@ export class PropertyVisitsController {
   ) {
     // Make sure we parse it as Date object if needed, but NestJS standard transforms can do this.
     // For simplicity, we just pass new Date(dto.scheduledAt)
-    return this.propertyVisitsService.scheduleVisit(
+    return this.carVisitsService.scheduleVisit(
       userId,
       listingId,
       new Date(dto.scheduledAt),
@@ -82,13 +82,13 @@ export class PropertyVisitsController {
   @ApiOperation({ summary: 'Get all visits requested by the current user' })
   @ApiResponse({ status: 200, description: 'List of visits' })
   getVisitsAsVisitor(@CurrentUser('id') userId: string) {
-    return this.propertyVisitsService.getVisitsAsVisitor(userId);
+    return this.carVisitsService.getVisitsAsVisitor(userId);
   }
 
   @Get('as-owner')
   @ApiOperation({
     summary:
-      "Get all visits requested for the current user's properties (paginated)",
+      "Get all visits requested for the current user's car listings (paginated)",
   })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
@@ -98,7 +98,7 @@ export class PropertyVisitsController {
     @Query('page') page = 1,
     @Query('limit') limit = 10,
   ) {
-    return this.propertyVisitsService.getVisitsAsOwner(userId, +page, +limit);
+    return this.carVisitsService.getVisitsAsOwner(userId, +page, +limit);
   }
 
   @Patch(':id/accept')
@@ -106,7 +106,7 @@ export class PropertyVisitsController {
   @ApiParam({ name: 'id', description: 'Visit ID' })
   @ApiResponse({ status: 200, description: 'Visit accepted' })
   acceptVisit(@CurrentUser('id') userId: string, @Param('id') visitId: string) {
-    return this.propertyVisitsService.acceptVisit(userId, visitId);
+    return this.carVisitsService.acceptVisit(userId, visitId);
   }
 
   @Patch(':id/reconfirm')
@@ -118,7 +118,7 @@ export class PropertyVisitsController {
     @Param('id') visitId: string,
     @Body() dto: ReconfirmVisitDto,
   ) {
-    return this.propertyVisitsService.reconfirmVisit(
+    return this.carVisitsService.reconfirmVisit(
       userId,
       visitId,
       new Date(dto.proposedAt),
@@ -132,6 +132,6 @@ export class PropertyVisitsController {
   @ApiParam({ name: 'id', description: 'Visit ID' })
   @ApiResponse({ status: 200, description: 'Visit closed' })
   closeVisit(@CurrentUser('id') userId: string, @Param('id') visitId: string) {
-    return this.propertyVisitsService.closeVisit(userId, visitId);
+    return this.carVisitsService.closeVisit(userId, visitId);
   }
 }

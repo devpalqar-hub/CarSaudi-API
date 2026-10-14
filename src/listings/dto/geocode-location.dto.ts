@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class GeocodeLocationDto {
   @ApiProperty({
-    description: 'Location or area search text in Qatar',
+    description: 'Location or area search text in Saudi Arabia',
     example: 'West Bay',
   })
   @IsNotEmpty()

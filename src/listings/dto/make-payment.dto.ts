@@ -16,7 +16,7 @@ export class MakePaymentDto {
       'Where to redirect after a successful payment (web/deep-link). ' +
       '`?session_id={CHECKOUT_SESSION_ID}` is appended automatically. ' +
       'Falls back to `FRONTEND_URL/dealer/listings/success` when omitted.',
-    example: 'villasqatar://listings/payment-success',
+    example: 'carsaudi://listings/payment-success',
   })
   @IsOptional()
   @IsString()
@@ -26,7 +26,7 @@ export class MakePaymentDto {
     description:
       'Where to redirect if the payment is cancelled/fails (web/deep-link). ' +
       'Falls back to `FRONTEND_URL/dealer/listings/cancel` when omitted.',
-    example: 'villasqatar://listings/payment-failed',
+    example: 'carsaudi://listings/payment-failed',
   })
   @IsOptional()
   @IsString()

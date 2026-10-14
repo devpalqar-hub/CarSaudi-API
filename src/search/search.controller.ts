@@ -10,16 +10,16 @@ export class SearchController {
 
   @Get('autocomplete')
   @ApiOperation({
-    summary: 'Autocomplete search for locations and properties',
+    summary: 'Autocomplete search for locations and car listings',
     description:
       'Returns a combined list of suggestions for the given query. ' +
-      'Location suggestions (from the Mapbox Geocoding API, restricted to Qatar) are always included. ' +
-      'Once the query is longer than 3 characters, matching properties ' +
-      '(searched by property name, description, area, address and reference code) are also included. ' +
+      'Location suggestions (from the Mapbox Geocoding API, restricted to Saudi Arabia) are always included. ' +
+      'Once the query is longer than 3 characters, matching car listings ' +
+      '(searched by title, description, area, address and reference code) are also included. ' +
       'Location results include `name` and `location` (latitude/longitude); ' +
-      'property results include `propertyName` and `slug`.',
+      'car results include `title` and `slug`.',
   })
-  @ApiQuery({ name: 'q', required: true, type: String, example: 'lusail' })
+  @ApiQuery({ name: 'q', required: true, type: String, example: 'camry' })
   @ApiResponse({
     status: 200,
     description: 'Combined autocomplete suggestions returned',

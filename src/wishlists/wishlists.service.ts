@@ -7,7 +7,7 @@ export class WishlistsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async toggleWishlist(userId: string, listingId: string) {
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: listingId },
     });
     if (!listing) {

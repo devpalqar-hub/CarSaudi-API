@@ -96,8 +96,8 @@ export class FeaturedPlansController {
   @ApiOperation({
     summary: 'Admin: Create a new featured plan',
     description:
-      'Creates a featured plan with a location (HOME_PAGE, LISTING_PAGE, or PROPERTY_DETAIL_PAGE), ' +
-      'a duration tier (SEVEN_DAYS, TWENTY_DAYS, or THIRTY_DAYS), and a price in QAR. ' +
+      'Creates a featured plan with a location (HOME_PAGE, LISTING_PAGE, or CAR_DETAIL_PAGE), ' +
+      'a duration tier (SEVEN_DAYS, TWENTY_DAYS, or THIRTY_DAYS), and a price in SAR. ' +
       'The `durationDays` (7, 20, or 30) is derived automatically from the `duration` enum.',
   })
   @ApiResponse({ status: 201, description: 'Featured plan created' })

@@ -455,7 +455,7 @@ export class DealerSubscriptionsService {
     if (event.type === 'checkout.session.expired') {
       const session = event.data.object;
       if (session.metadata?.type === 'LISTING_PAYMENT') {
-        await this.prisma.listing.updateMany({
+        await this.prisma.carListing.updateMany({
           where: { stripeSessionId: session.id },
           data: { paymentStatus: 'FAILED' },
         });
@@ -540,12 +540,12 @@ export class DealerSubscriptionsService {
     paidAmount: number | null,
   ): Promise<boolean> {
     const listing = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.listing.findUnique({
+      const existing = await tx.carListing.findUnique({
         where: { id: listingId },
       });
       if (!existing || existing.paymentStatus === 'PAID') return null; // already processed
 
-      const updated = await tx.listing.update({
+      const updated = await tx.carListing.update({
         where: { id: listingId },
         data: {
           paymentStatus: 'PAID',
@@ -554,7 +554,7 @@ export class DealerSubscriptionsService {
         },
       });
 
-      await tx.listingReview.create({
+      await tx.carListingReview.create({
         data: {
           listingId,
           action: ListingReviewAction.APPROVED,
@@ -571,7 +571,7 @@ export class DealerSubscriptionsService {
     this.notifications
       .sendToUser(listing.createdById, {
         title: 'Listing is now live 🎉',
-        body: `"${listing.propertyName}" is now live on VillasQatar.`,
+        body: `"${listing.title}" is now live on CarSaudi.`,
         data: { type: 'LISTING_APPROVED', listingId },
       })
       .catch(() => {});
@@ -584,7 +584,7 @@ export class DealerSubscriptionsService {
       this.mail.sendListingApprovedEmail(
         owner.email,
         owner.name ?? 'there',
-        listing.propertyName,
+        listing.title,
         listing.slug ?? listing.id,
       );
     }
@@ -595,7 +595,7 @@ export class DealerSubscriptionsService {
         type: InvoiceType.LISTING_PAYMENT,
         referenceId: listing.id,
         billedToId: listing.createdById,
-        description: `Listing Publication — ${listing.propertyName}`,
+        description: `Listing Publication — ${listing.title}`,
         lineItems: [
           {
             description: 'Pay-per-listing publication charge',
@@ -699,10 +699,10 @@ export class DealerSubscriptionsService {
       },
     });
 
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: primarySub.listingId },
       select: {
-        propertyName: true,
+        title: true,
         createdBy: { select: { name: true, email: true } },
       },
     });
@@ -710,7 +710,7 @@ export class DealerSubscriptionsService {
       this.mail.sendFeaturedActivationEmail(
         listing.createdBy.email,
         listing.createdBy.name ?? 'there',
-        listing.propertyName,
+        listing.title,
         primarySub.plan.name,
         primarySub.plan.locations,
         primarySub.plan.durationDays,
@@ -725,7 +725,7 @@ export class DealerSubscriptionsService {
         type: InvoiceType.FEATURED_LISTING,
         referenceId: primarySub.id,
         billedToId: primarySub.createdById,
-        description: `Featured Listing — ${listing?.propertyName ?? primarySub.listingId}`,
+        description: `Featured Listing — ${listing?.title ?? primarySub.listingId}`,
         lineItems: [
           {
             description: `${primarySub.plan.name} (${primarySub.plan.durationDays} days, ${subIds.length} location${subIds.length > 1 ? 's' : ''})`,

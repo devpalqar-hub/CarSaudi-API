@@ -30,11 +30,11 @@ export class CompleteProfileDto {
   @ApiPropertyOptional({
     description:
       'Phone number in E.164 format. Required for social login (Google/Apple) users to link their phone.',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsOptional()
   @Matches(/^\+?[1-9]\d{6,14}$/, {
-    message: 'Phone number must be in E.164 format (e.g. +97412345678)',
+    message: 'Phone number must be in E.164 format (e.g. +96612345678)',
   })
   phone?: string;
 }

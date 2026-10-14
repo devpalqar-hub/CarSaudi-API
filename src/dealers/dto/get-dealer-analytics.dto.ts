@@ -84,7 +84,7 @@ export class GetDealerAnalyticsDto {
   @Max(100)
   limit?: number = 10;
 
-  @ApiPropertyOptional({ description: 'Search term by property name or slug' })
+  @ApiPropertyOptional({ description: 'Search term by listing title or slug' })
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
   @IsString()
@@ -130,17 +130,17 @@ export class GetDealerAnalyticsDto {
   @IsString()
   staffUserId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by property type ID' })
+  @ApiPropertyOptional({ description: 'Filter by car model ID' })
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
   @IsString()
-  typeId?: string;
+  modelId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by municipality ID' })
+  @ApiPropertyOptional({ description: 'Filter by brand ID' })
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
   @IsString()
-  municipalityId?: string;
+  brandId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by area name (e.g. "The Pearl")' })
   @IsOptional()

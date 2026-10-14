@@ -101,7 +101,7 @@ export class ChatGateway
     }
 
     client.emit('connected', {
-      message: 'Connected to VillasQatar Chat',
+      message: 'Connected to CarSaudi Chat',
       userId: user.id,
       role: user.role,
     });

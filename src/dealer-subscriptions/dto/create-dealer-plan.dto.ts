@@ -38,7 +38,7 @@ export class CreateDealerPlanDto {
 
   @ApiProperty({
     description:
-      'Plan price in QAR. Set to 0 for a free plan (no Stripe payment required).',
+      'Plan price in SAR. Set to 0 for a free plan (no Stripe payment required).',
     example: 2500,
   })
   @IsNumber()

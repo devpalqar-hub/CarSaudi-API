@@ -1,18 +1,14 @@
 import { PartialType } from '@nestjs/swagger';
 import {
-  CreateAmenityDto,
-  CreateFurnishingOptionDto,
-  CreateNearbyTagDto,
-  CreateListingTypeOptionDto,
-  CreateMunicipalityDto,
+  CreateCarFeatureDto,
+  CreateCarTypeDto,
+  CreateCarTagDto,
+  CreateCarModelDto,
+  CreateCarBrandDto,
 } from './create-option.dto';
 
-export class UpdateAmenityDto extends PartialType(CreateAmenityDto) {}
-export class UpdateNearbyTagDto extends PartialType(CreateNearbyTagDto) {}
-export class UpdateFurnishingOptionDto extends PartialType(
-  CreateFurnishingOptionDto,
-) {}
-export class UpdateListingTypeOptionDto extends PartialType(
-  CreateListingTypeOptionDto,
-) {}
-export class UpdateMunicipalityDto extends PartialType(CreateMunicipalityDto) {}
+export class UpdateCarFeatureDto extends PartialType(CreateCarFeatureDto) {}
+export class UpdateCarTagDto extends PartialType(CreateCarTagDto) {}
+export class UpdateCarTypeDto extends PartialType(CreateCarTypeDto) {}
+export class UpdateCarModelDto extends PartialType(CreateCarModelDto) {}
+export class UpdateCarBrandDto extends PartialType(CreateCarBrandDto) {}

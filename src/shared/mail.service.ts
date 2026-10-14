@@ -20,7 +20,7 @@ export interface MailOptions {
 
 // Referenced via `cid:` in the header every outgoing email gets, so the logo
 // renders inline without depending on a publicly reachable URL.
-const LOGO_CID = 'villasqatar-logo';
+const LOGO_CID = 'carsaudi-logo';
 const LOGO_PATH = resolveAssetPath('logoColor.png');
 
 @Injectable()
@@ -49,14 +49,14 @@ export class MailService {
   }
 
   /**
-   * Fire-and-forget email send. Every email gets the VillasQatar logo
+   * Fire-and-forget email send. Every email gets the CarSaudi logo
    * prepended as an inline (cid) header image. Never throws — logs error
    * and continues.
    */
   sendMail(options: MailOptions): void {
     const from = this.configService.get<string>(
       'SMTP_FROM',
-      'VillasQatar <noreply@villasqatar.com>',
+      'CarSaudi <noreply@carsaudi.com>',
     );
 
     const attachments = [...(options.attachments ?? [])];
@@ -65,12 +65,12 @@ export class MailService {
     if (this.logoBuffer) {
       html = `
         <div style="text-align:center; padding:20px 0 8px;">
-          <img src="cid:${LOGO_CID}" alt="VillasQatar" style="height:42px; width:auto;" />
+          <img src="cid:${LOGO_CID}" alt="CarSaudi" style="height:42px; width:auto;" />
         </div>
         ${html}
       `;
       attachments.push({
-        filename: 'villasqatar-logo.png',
+        filename: 'carsaudi-logo.png',
         content: this.logoBuffer,
         contentType: 'image/png',
         cid: LOGO_CID,
@@ -104,15 +104,15 @@ export class MailService {
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
 
     this.sendMail({
       to,
-      subject: '🎉 Your VillasQatar Dealer Account is Approved!',
+      subject: '🎉 Your CarSaudi Dealer Account is Approved!',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1a73e8;">Welcome to VillasQatar, ${contactName}!</h2>
+          <h2 style="color: #1a73e8;">Welcome to CarSaudi, ${contactName}!</h2>
           <p>Great news — your dealer account application has been <strong>approved</strong>.</p>
           <p>Here are your login credentials:</p>
           <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
@@ -146,18 +146,18 @@ export class MailService {
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
     const editLink = `${frontendUrl}/dealer/application/edit/${editToken}`;
 
     this.sendMail({
       to,
-      subject: 'VillasQatar Dealer Application — Update Required',
+      subject: 'CarSaudi Dealer Application — Update Required',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #d32f2f;">Application Update Required</h2>
           <p>Dear ${contactName},</p>
-          <p>Thank you for applying to become a VillasQatar dealer. After reviewing your application,
+          <p>Thank you for applying to become a CarSaudi dealer. After reviewing your application,
              we need some additional updates before we can proceed.</p>
           <div style="background:#fff3e0; border-left:4px solid #f57c00; padding:16px; margin:16px 0; border-radius:4px;">
             <strong>Admin Feedback:</strong>
@@ -185,16 +185,16 @@ export class MailService {
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
 
     this.sendMail({
       to,
-      subject: 'Welcome to VillasQatar Dealer Staff Portal',
+      subject: 'Welcome to CarSaudi Dealer Staff Portal',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1a73e8;">Welcome, ${contactName}!</h2>
-          <p>You have been added as a staff member by your agency on VillasQatar.</p>
+          <p>You have been added as a staff member by your agency on CarSaudi.</p>
           <p>Here are your login credentials:</p>
           <table style="border-collapse: collapse; width: 100%; margin: 16px 0;">
             <tr>
@@ -229,7 +229,7 @@ export class MailService {
   sendFeaturedActivationEmail(
     to: string,
     contactName: string,
-    propertyName: string,
+    title: string,
     planName: string,
     locations: string[],
     durationDays: number,
@@ -238,7 +238,7 @@ export class MailService {
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
 
     const isFree = !amountPaid || amountPaid <= 0;
@@ -253,7 +253,7 @@ export class MailService {
 
     this.sendMail({
       to,
-      subject: `🚀 "${propertyName}" is now Featured on VillasQatar!`,
+      subject: `🚀 "${title}" is now Featured on CarSaudi!`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
           <div style="background: #1a73e8; padding: 24px 32px; border-radius: 8px 8px 0 0;">
@@ -261,7 +261,7 @@ export class MailService {
           </div>
           <div style="background: #fff; padding: 32px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
             <p style="margin-top: 0;">Hi <strong>${contactName}</strong>,</p>
-            <p>Great news — <strong>${propertyName}</strong> is now live in the featured pool and will get extra visibility.</p>
+            <p>Great news — <strong>${title}</strong> is now live in the featured pool and will get extra visibility.</p>
             <table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.9em;">
               <tr>
                 <td style="padding: 8px 12px; background:#f5f5f5; font-weight:bold; width: 40%;">Plan</td>
@@ -281,7 +281,7 @@ export class MailService {
               </tr>
               <tr>
                 <td style="padding: 8px 12px; background:#f5f5f5; font-weight:bold;">Amount</td>
-                <td style="padding: 8px 12px;">${isFree ? 'Free (subscription quota / discount)' : `QAR ${amountPaid.toFixed(2)}`}</td>
+                <td style="padding: 8px 12px;">${isFree ? 'Free (subscription quota / discount)' : `SAR ${amountPaid.toFixed(2)}`}</td>
               </tr>
             </table>
             <a href="${frontendUrl}/dealer/listings"
@@ -290,7 +290,7 @@ export class MailService {
               View Your Listings →
             </a>
             <p style="margin-top: 20px; color: #666; font-size: 0.9em;">
-              Thank you for using <strong>VillasQatar</strong>.
+              Thank you for using <strong>CarSaudi</strong>.
             </p>
           </div>
         </div>
@@ -303,30 +303,30 @@ export class MailService {
   sendListingApprovedEmail(
     to: string,
     contactName: string,
-    propertyName: string,
+    title: string,
     listingSlugOrId: string,
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
     const listingUrl = `${frontendUrl}/listings/${listingSlugOrId}`;
 
     this.sendMail({
       to,
-      subject: `✅ "${propertyName}" is now live on VillasQatar!`,
+      subject: `✅ "${title}" is now live on CarSaudi!`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #388e3c;">Your listing has been approved!</h2>
           <p>Hi ${contactName},</p>
-          <p><strong>${propertyName}</strong> has been reviewed and approved — it's now live and visible to everyone on VillasQatar.</p>
+          <p><strong>${title}</strong> has been reviewed and approved — it's now live and visible to everyone on CarSaudi.</p>
           <a href="${listingUrl}"
              style="display:inline-block; background:#388e3c; color:#fff; padding:12px 24px;
                     border-radius:6px; text-decoration:none; font-weight:bold;">
             View Your Listing →
           </a>
           <p style="margin-top: 20px; color: #666; font-size: 0.9em;">
-            Thank you for using <strong>VillasQatar</strong>.
+            Thank you for using <strong>CarSaudi</strong>.
           </p>
         </div>
       `,
@@ -337,23 +337,23 @@ export class MailService {
   sendListingApprovalPaymentRequiredEmail(
     to: string,
     contactName: string,
-    propertyName: string,
+    title: string,
     price: number,
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
 
     this.sendMail({
       to,
-      subject: `✅ "${propertyName}" approved — payment needed to publish`,
+      subject: `✅ "${title}" approved — payment needed to publish`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1a73e8;">Your listing was approved!</h2>
           <p>Hi ${contactName},</p>
-          <p><strong>${propertyName}</strong> passed review. One last step — a one-time payment of
-             <strong>QAR ${price.toFixed(2)}</strong> is needed to publish it live on VillasQatar.</p>
+          <p><strong>${title}</strong> passed review. One last step — a one-time payment of
+             <strong>SAR ${price.toFixed(2)}</strong> is needed to publish it live on CarSaudi.</p>
           <a href="${frontendUrl}/my-listings"
              style="display:inline-block; background:#1a73e8; color:#fff; padding:12px 24px;
                     border-radius:6px; text-decoration:none; font-weight:bold;">
@@ -370,22 +370,22 @@ export class MailService {
   sendListingRejectedEmail(
     to: string,
     contactName: string,
-    propertyName: string,
+    title: string,
     message: string,
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
 
     this.sendMail({
       to,
-      subject: `Update needed for "${propertyName}"`,
+      subject: `Update needed for "${title}"`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #d32f2f;">Your listing needs changes</h2>
           <p>Hi ${contactName},</p>
-          <p>We reviewed <strong>${propertyName}</strong> and it wasn't approved as submitted.</p>
+          <p>We reviewed <strong>${title}</strong> and it wasn't approved as submitted.</p>
           <div style="background:#fff3e0; border-left:4px solid #f57c00; padding:16px; margin:16px 0; border-radius:4px;">
             <strong>Reviewer Feedback:</strong>
             <p style="margin:8px 0 0;">${message}</p>
@@ -411,12 +411,12 @@ export class MailService {
   ): void {
     this.sendMail({
       to,
-      subject: 'Your VillasQatar password reset code',
+      subject: 'Your CarSaudi password reset code',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1a73e8;">Reset your password</h2>
           <p>Hi ${contactName},</p>
-          <p>We received a request to reset your VillasQatar account password. Use the code below to continue:</p>
+          <p>We received a request to reset your CarSaudi account password. Use the code below to continue:</p>
           <div style="background:#f5f5f5; border-radius:8px; padding:20px; text-align:center; margin:20px 0;">
             <span style="font-family: monospace; font-size: 2em; letter-spacing: 6px; font-weight:bold; color:#1a73e8;">${otp}</span>
           </div>
@@ -450,7 +450,7 @@ export class MailService {
   ): void {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'https://app.villasqatar.com',
+      'https://app.carsaudi.com',
     );
 
     const statusColorMap: Record<string, string> = {
@@ -471,7 +471,7 @@ export class MailService {
 
           <!-- Header -->
           <div style="background: #1a73e8; padding: 24px 32px; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #fff; margin: 0; font-size: 1.4em;">VillasQatar Support</h1>
+            <h1 style="color: #fff; margin: 0; font-size: 1.4em;">CarSaudi Support</h1>
           </div>
 
           <!-- Body -->
@@ -520,13 +520,13 @@ export class MailService {
 
             <p style="color: #666; font-size: 0.85em; margin: 0;">
               If you have further questions, you can reply to this ticket from your account.<br />
-              Thank you for contacting <strong>VillasQatar Support</strong>.
+              Thank you for contacting <strong>CarSaudi Support</strong>.
             </p>
           </div>
 
           <!-- Footer -->
           <div style="text-align: center; padding: 16px; color: #999; font-size: 0.8em;">
-            © ${new Date().getFullYear()} VillasQatar. All rights reserved.
+            © ${new Date().getFullYear()} CarSaudi. All rights reserved.
           </div>
         </div>
       `,

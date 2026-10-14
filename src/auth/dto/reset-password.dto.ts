@@ -12,7 +12,7 @@ import {
 export class ResetPasswordDto {
   @ApiProperty({
     description: 'Account email address the OTP was sent to',
-    example: 'admin@villasqatar.com',
+    example: 'admin@carsaudi.com',
   })
   @IsEmail()
   @IsNotEmpty()

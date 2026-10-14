@@ -36,7 +36,7 @@ export class UpdateFeaturedPlanDto {
   @IsEnum(FeaturedPlanDuration)
   duration?: FeaturedPlanDuration;
 
-  @ApiPropertyOptional({ description: 'Price in QAR (0 = free)' })
+  @ApiPropertyOptional({ description: 'Price in SAR (0 = free)' })
   @IsOptional()
   @IsNumber()
   @Min(0)

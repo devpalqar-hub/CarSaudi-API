@@ -37,7 +37,7 @@ import { ListTicketsDto } from './dto/list-tickets.dto';
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN, UserRole.MODERATOR)
-@Controller('protected/villasqatar/admin/support/tickets')
+@Controller('protected/carsaudi/admin/support/tickets')
 export class SupportAdminController {
   constructor(private readonly supportService: SupportService) {}
 

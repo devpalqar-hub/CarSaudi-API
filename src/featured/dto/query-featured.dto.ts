@@ -30,8 +30,8 @@ export class QueryFeaturedDto {
   listingId?: string;
 
   @ApiPropertyOptional({
-    description: 'Search by property name, area name, or description',
-    example: 'Pearl villa',
+    description: 'Search by listing title, area name, or description',
+    example: 'Toyota Camry',
   })
   @IsOptional()
   @IsString()

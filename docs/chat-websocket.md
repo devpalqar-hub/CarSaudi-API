@@ -36,7 +36,7 @@
 
 ## Overview
 
-The VillasQatar Chat system enables real-time messaging between property enquirers and dealers/dealer-staff using **Socket.IO** over WebSocket. REST endpoints are also provided for conversation listing, message history retrieval, and media uploads.
+The CarSaudi Chat system enables real-time messaging between car enquirers and dealers/dealer-staff using **Socket.IO** over WebSocket. REST endpoints are also provided for conversation listing, message history retrieval, and media uploads.
 
 ```
 WebSocket URL: ws://<host>/chat
@@ -131,7 +131,7 @@ Creates or retrieves an existing conversation for a given listing. Automatically
 
 | Field       | Type     | Required | Description                        |
 | ----------- | -------- | -------- | ---------------------------------- |
-| `listingId` | `string` | ✅ Yes   | UUID of the property listing       |
+| `listingId` | `string` | ✅ Yes   | UUID of the car listing       |
 
 #### Participants Auto-Added
 
@@ -206,7 +206,7 @@ On success, broadcasts [`new_message`](#new_message) to:
 socket.emit('send_message', {
   conversationId: 'conv-uuid',
   type: 'TEXT',
-  content: 'Hello, I am interested in this property!'
+  content: 'Hello, I am interested in this car!'
 });
 ```
 
@@ -239,7 +239,7 @@ socket.emit('send_message', {
   type: 'LOCATION',
   latitude: 25.2854,
   longitude: 51.5310,
-  locationLabel: 'Pearl Qatar, Doha'
+  locationLabel: 'Al Olaya, Riyadh'
 });
 ```
 
@@ -291,7 +291,7 @@ Emitted to the client immediately after a successful authenticated connection.
 
 ```json
 {
-  "message": "Connected to VillasQatar Chat",
+  "message": "Connected to CarSaudi Chat",
   "userId": "string",
   "role": "USER | DEALER | DEALER_STAFF | ADMIN"
 }
@@ -319,7 +319,7 @@ Emitted to the requesting client after a successful `join_conversation` event.
   },
   "listing": {
     "id": "string",
-    "propertyName": "string",
+    "title": "string",
     "type": "string",
     "purpose": "string",
     "price": 0,
@@ -486,7 +486,7 @@ Works for all roles: `USER`, `DEALER`, `DEALER_STAFF`.
     "updatedAt": "2025-01-01T00:00:00.000Z",
     "listing": {
       "id": "string",
-      "propertyName": "string",
+      "title": "string",
       "type": "string",
       "purpose": "string",
       "photos": [{ "url": "string" }]
@@ -690,4 +690,4 @@ Client                                    Server
 
 ---
 
-*Documentation generated for VillasQatar Chat API — Socket.IO Gateway on `/chat` namespace.*
+*Documentation generated for CarSaudi Chat API — Socket.IO Gateway on `/chat` namespace.*

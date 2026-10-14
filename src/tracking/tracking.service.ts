@@ -21,7 +21,7 @@ export class TrackingService {
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
     try {
-      const recentLog = await this.prisma.listingTrackingLog.findFirst({
+      const recentLog = await this.prisma.carListingTrackingLog.findFirst({
         where: {
           listingId,
           deviceId,
@@ -40,7 +40,7 @@ export class TrackingService {
       // Check if it's the first time this device views this listing for Reach
       let isFirstView = false;
       if (type === TrackingLogType.VIEW) {
-        const existingViewLog = await this.prisma.listingTrackingLog.findFirst({
+        const existingViewLog = await this.prisma.carListingTrackingLog.findFirst({
           where: {
             listingId,
             deviceId,
@@ -54,7 +54,7 @@ export class TrackingService {
 
       // Perform updates inside a transaction
       await this.prisma.$transaction(async (tx) => {
-        await tx.listingTrackingLog.create({
+        await tx.carListingTrackingLog.create({
           data: {
             listingId,
             deviceId,
@@ -74,7 +74,7 @@ export class TrackingService {
           updateData.whatsappClicksCount = { increment: 1 };
         }
 
-        await tx.listing.update({
+        await tx.carListing.update({
           where: { id: listingId },
           data: updateData,
         });
@@ -91,7 +91,7 @@ export class TrackingService {
   }
 
   async purgeLogsForListing(listingId: string) {
-    await this.prisma.listingTrackingLog.deleteMany({
+    await this.prisma.carListingTrackingLog.deleteMany({
       where: { listingId },
     });
   }

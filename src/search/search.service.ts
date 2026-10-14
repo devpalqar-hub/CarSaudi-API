@@ -3,9 +3,9 @@ import { ListingStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchAutocompleteDto } from './dto/search-autocomplete.dto';
 
-const PROPERTY_SEARCH_MIN_LENGTH = 3;
+const CAR_SEARCH_MIN_LENGTH = 3;
 const PLACE_RESULTS_LIMIT = 5;
-const PROPERTY_RESULTS_LIMIT = 5;
+const CAR_RESULTS_LIMIT = 5;
 
 export interface PlaceResult {
   type: 'place';
@@ -13,9 +13,9 @@ export interface PlaceResult {
   location: { latitude: number; longitude: number };
 }
 
-export interface PropertyResult {
-  type: 'property';
-  propertyName: string;
+export interface CarResult {
+  type: 'car';
+  title: string;
   slug: string | null;
 }
 
@@ -39,20 +39,20 @@ export class SearchService {
       return { query, results: [] };
     }
 
-    const [places, properties] = await Promise.all([
+    const [places, cars] = await Promise.all([
       this.searchPlaces(query),
-      query.length > PROPERTY_SEARCH_MIN_LENGTH
-        ? this.searchProperties(query)
+      query.length > CAR_SEARCH_MIN_LENGTH
+        ? this.searchCars(query)
         : Promise.resolve([]),
     ]);
 
     return {
       query,
-      results: [...places, ...properties],
+      results: [...places, ...cars],
     };
   }
 
-  // ─── Location search (Mapbox Geocoding API, Qatar only) ────────────────────
+  // ─── Location search (Mapbox Geocoding API, Saudi Arabia only) ─────────────
 
   private async searchPlaces(query: string): Promise<PlaceResult[]> {
     const accessToken = process.env.MAPBOX_ACCESS_TOKEN;
@@ -63,11 +63,11 @@ export class SearchService {
     try {
       const url =
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-        `?access_token=${accessToken}&country=qa&autocomplete=true&limit=${PLACE_RESULTS_LIMIT}`;
+        `?access_token=${accessToken}&country=sa&autocomplete=true&limit=${PLACE_RESULTS_LIMIT}`;
       const res = await fetch(url);
       const data = (await res.json()) as MapboxGeocodingResponse;
 
-      // `country=qa` above already restricts results to Qatar
+      // `country=sa` above already restricts results to Saudi Arabia
       const features = Array.isArray(data.features) ? data.features : [];
       return features
         .map((feature): PlaceResult => ({
@@ -89,14 +89,14 @@ export class SearchService {
     }
   }
 
-  // ─── Property search (name / description / keyword) ────────────────────────
+  // ─── Car search (title / description / keyword) ────────────────────────────
 
-  private async searchProperties(query: string): Promise<PropertyResult[]> {
-    const listings = await this.prisma.listing.findMany({
+  private async searchCars(query: string): Promise<CarResult[]> {
+    const listings = await this.prisma.carListing.findMany({
       where: {
         status: ListingStatus.ACTIVE,
         OR: [
-          { propertyName: { contains: query, mode: 'insensitive' } },
+          { title: { contains: query, mode: 'insensitive' } },
           { description: { contains: query, mode: 'insensitive' } },
           { areaName: { contains: query, mode: 'insensitive' } },
           { addressLine1: { contains: query, mode: 'insensitive' } },
@@ -105,16 +105,16 @@ export class SearchService {
         ],
       },
       select: {
-        propertyName: true,
+        title: true,
         slug: true,
       },
-      take: PROPERTY_RESULTS_LIMIT,
+      take: CAR_RESULTS_LIMIT,
       orderBy: { createdAt: 'desc' },
     });
 
     return listings.map((listing) => ({
-      type: 'property' as const,
-      propertyName: listing.propertyName,
+      type: 'car' as const,
+      title: listing.title,
       slug: listing.slug,
     }));
   }

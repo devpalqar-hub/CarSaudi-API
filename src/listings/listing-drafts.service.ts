@@ -5,9 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  ListingDraftStatus,
-  ListingDraftSource,
+  CarCondition,
+  CarListingDraftStatus,
+  CarListingDraftSource,
+  FuelType,
   ListingPurpose,
+  TransmissionType,
   UserRole,
 } from '@prisma/client';
 import * as XLSX from 'xlsx';
@@ -15,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueryListingDraftsDto } from './dto/query-listing-drafts.dto';
 
-/** One parsed + validated row, ready to be stored as a ListingDraft */
+/** One parsed + validated row, ready to be stored as a CarListingDraft */
 interface ParsedRow {
   rowNumber: number;
   data: Record<string, unknown>;
@@ -48,29 +51,31 @@ function toBoolean(value: unknown): boolean | undefined {
 
 /** Column headers accepted for the Excel/CSV template (case-insensitive, order shown in the download template) */
 export const BULK_UPLOAD_COLUMNS = [
-  'propertyName',
+  'title',
   'description',
   'purpose',
-  'type',
+  'model',
+  'brand',
   'price',
   'priceNegotiable',
-  'bedrooms',
-  'bathrooms',
-  'area',
-  'livingRooms',
-  'parkingSpaces',
-  'floorNumber',
-  'totalFloors',
-  'yearBuilt',
-  'furnishing',
+  'modelYear',
+  'mileage',
+  'transmission',
+  'fuelType',
+  'condition',
+  'exteriorColor',
+  'interiorColor',
+  'cylinders',
+  'doors',
+  'vin',
+  'carType',
   'addressLine1',
   'addressLine2',
   'areaName',
-  'municipality',
   'contactPhone',
   'contactWhatsapp',
-  'amenities',
-  'nearbyTags',
+  'features',
+  'tags',
   'otherFeatures',
   'latitude',
   'longitude',
@@ -79,33 +84,35 @@ export const BULK_UPLOAD_COLUMNS = [
 ] as const;
 
 const EXAMPLE_ROW: Record<(typeof BULK_UPLOAD_COLUMNS)[number], string> = {
-  propertyName: 'Luxury 4-BR Villa in The Pearl Qatar',
-  description: 'Stunning 4-bedroom villa with private pool and sea view',
+  title: '2022 Toyota Camry SE — Excellent Condition',
+  description: 'Single owner, accident-free, full service history',
   purpose: 'SALE',
-  type: 'Villa',
-  price: '5500000',
+  model: 'Camry',
+  brand: 'Toyota',
+  price: '85000',
   priceNegotiable: 'false',
-  bedrooms: '4',
-  bathrooms: '5',
-  area: '450.5',
-  livingRooms: '2',
-  parkingSpaces: '2',
-  floorNumber: '',
-  totalFloors: '',
-  yearBuilt: '2019',
-  furnishing: 'Fully Furnished',
-  addressLine1: 'Porto Arabia Tower 5',
+  modelYear: '2022',
+  mileage: '35000',
+  transmission: 'AUTOMATIC',
+  fuelType: 'PETROL',
+  condition: 'USED',
+  exteriorColor: 'Pearl White',
+  interiorColor: 'Beige',
+  cylinders: '4',
+  doors: '4',
+  vin: '',
+  carType: 'Sedan',
+  addressLine1: 'King Fahd Road',
   addressLine2: '',
-  areaName: 'The Pearl Qatar',
-  municipality: 'Doha',
-  contactPhone: '+97455512345',
-  contactWhatsapp: '+97455512345',
-  amenities: 'Swimming Pool, Covered Parking, Garden',
-  nearbyTags: 'school, mall, beach',
-  otherFeatures: 'Comes with a dedicated boat berth in the marina',
-  latitude: '25.3548',
-  longitude: '51.1839',
-  extraProperties: '{"privatePool": true, "gardenAreaSqm": 200}',
+  areaName: 'Al Olaya, Riyadh',
+  contactPhone: '+966512345678',
+  contactWhatsapp: '+966512345678',
+  features: 'Sunroof, Leather Seats, Navigation System',
+  tags: 'Single Owner, Accident-Free, GCC Spec',
+  otherFeatures: 'Comes with an extended warranty',
+  latitude: '24.7136',
+  longitude: '46.6753',
+  extraProperties: '{"driveType": "FWD"}',
   photos:
     'https://cdn.example.com/photo1.jpg, https://cdn.example.com/photo2.jpg',
 };
@@ -181,7 +188,7 @@ export class ListingDraftsService {
     const batchId = uuidv4();
     const drafts = await Promise.all(
       parsedRows.map((row) =>
-        this.prisma.listingDraft.create({
+        this.prisma.carListingDraft.create({
           data: {
             batchId,
             source,
@@ -215,7 +222,7 @@ export class ListingDraftsService {
 
   /** Detects format from mimetype/extension and returns raw parsed rows as plain objects. */
   private parseFile(file: Express.Multer.File): {
-    source: ListingDraftSource;
+    source: CarListingDraftSource;
     rows: Record<string, unknown>[];
   } {
     const name = (file.originalname ?? '').toLowerCase();
@@ -234,7 +241,7 @@ export class ListingDraftsService {
         );
       }
       return {
-        source: ListingDraftSource.JSON,
+        source: CarListingDraftSource.JSON,
         rows: parsed as Record<string, unknown>[],
       };
     }
@@ -245,7 +252,7 @@ export class ListingDraftsService {
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
         defval: '',
       });
-      return { source: ListingDraftSource.CSV, rows };
+      return { source: CarListingDraftSource.CSV, rows };
     }
 
     if (
@@ -259,7 +266,7 @@ export class ListingDraftsService {
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
         defval: '',
       });
-      return { source: ListingDraftSource.EXCEL, rows };
+      return { source: CarListingDraftSource.EXCEL, rows };
     }
 
     throw new BadRequestException(
@@ -269,24 +276,23 @@ export class ListingDraftsService {
 
   /** Pre-loads all option tables once per upload so per-row lookups are in-memory, not per-row queries. */
   private async loadReferenceLookups() {
-    const [types, furnishings, municipalities, amenities, nearbyTags] =
-      await Promise.all([
-        this.prisma.listingTypeOption.findMany({
-          select: { id: true, title: true },
-        }),
-        this.prisma.furnishingOption.findMany({
-          select: { id: true, title: true },
-        }),
-        this.prisma.municipalityOption.findMany({
-          select: { id: true, name: true },
-        }),
-        this.prisma.amenityOption.findMany({
-          select: { id: true, title: true },
-        }),
-        this.prisma.nearbyTagOption.findMany({
-          select: { id: true, title: true },
-        }),
-      ]);
+    const [models, carTypes, brands, features, tags] = await Promise.all([
+      this.prisma.carModelOption.findMany({
+        select: { id: true, title: true },
+      }),
+      this.prisma.carTypeOption.findMany({
+        select: { id: true, title: true },
+      }),
+      this.prisma.carBrandOption.findMany({
+        select: { id: true, name: true },
+      }),
+      this.prisma.carFeatureOption.findMany({
+        select: { id: true, title: true },
+      }),
+      this.prisma.carTagOption.findMany({
+        select: { id: true, title: true },
+      }),
+    ]);
 
     const byIdOrTitle = (
       rows: { id: string; title?: string; name?: string }[],
@@ -301,11 +307,11 @@ export class ListingDraftsService {
     };
 
     return {
-      types: byIdOrTitle(types),
-      furnishings: byIdOrTitle(furnishings),
-      municipalities: byIdOrTitle(municipalities),
-      amenities: byIdOrTitle(amenities),
-      nearbyTags: byIdOrTitle(nearbyTags),
+      models: byIdOrTitle(models),
+      carTypes: byIdOrTitle(carTypes),
+      brands: byIdOrTitle(brands),
+      features: byIdOrTitle(features),
+      tags: byIdOrTitle(tags),
     };
   }
 
@@ -325,10 +331,8 @@ export class ListingDraftsService {
 
     const errors: string[] = [];
 
-    const propertyName = get('propertyName')
-      ? String(get('propertyName')).trim()
-      : '';
-    if (!propertyName) errors.push('propertyName is required');
+    const title = get('title') ? String(get('title')).trim() : '';
+    if (!title) errors.push('title is required');
 
     const purposeRaw = String(get('purpose') ?? '')
       .trim()
@@ -340,53 +344,84 @@ export class ListingDraftsService {
       : undefined;
     if (!purpose) errors.push('purpose must be SALE or RENT');
 
-    const typeRaw = String(get('type') ?? '').trim();
-    const typeId = typeRaw
-      ? lookups.types.get(typeRaw.toLowerCase())
+    const modelRaw = String(get('model') ?? '').trim();
+    const modelId = modelRaw
+      ? lookups.models.get(modelRaw.toLowerCase())
       : undefined;
-    if (!typeRaw) errors.push('type is required');
-    else if (!typeId)
-      errors.push(
-        `type "${typeRaw}" not found (use a property type ID or exact title)`,
-      );
+    if (!modelRaw) errors.push('model is required');
+    else if (!modelId)
+      errors.push(`model "${modelRaw}" not found (use a car model ID or exact title)`);
+
+    const brandRaw = String(get('brand') ?? '').trim();
+    const brandId = brandRaw
+      ? lookups.brands.get(brandRaw.toLowerCase())
+      : undefined;
+    if (!brandRaw) errors.push('brand is required');
+    else if (!brandId)
+      errors.push(`brand "${brandRaw}" not found (use a car brand ID or exact name)`);
 
     const price = toNumber(get('price'));
     if (price === undefined || price <= 0)
       errors.push('price must be a positive number');
 
-    const furnishingRaw = String(get('furnishing') ?? '').trim();
-    const furnishingId = furnishingRaw
-      ? lookups.furnishings.get(furnishingRaw.toLowerCase())
+    const carTypeRaw = String(get('carType') ?? '').trim();
+    const carTypeId = carTypeRaw
+      ? lookups.carTypes.get(carTypeRaw.toLowerCase())
       : undefined;
-    if (furnishingRaw && !furnishingId)
-      errors.push(`furnishing "${furnishingRaw}" not found`);
+    if (carTypeRaw && !carTypeId)
+      errors.push(`carType "${carTypeRaw}" not found`);
 
-    const municipalityRaw = String(get('municipality') ?? '').trim();
-    const municipalityId = municipalityRaw
-      ? lookups.municipalities.get(municipalityRaw.toLowerCase())
+    const transmissionRaw = String(get('transmission') ?? '')
+      .trim()
+      .toUpperCase();
+    const transmission = (
+      Object.values(TransmissionType) as string[]
+    ).includes(transmissionRaw)
+      ? transmissionRaw
       : undefined;
-    if (municipalityRaw && !municipalityId)
-      errors.push(`municipality "${municipalityRaw}" not found`);
+    if (transmissionRaw && !transmission)
+      errors.push('transmission must be AUTOMATIC or MANUAL');
 
-    const amenityLabels = splitList(get('amenities'));
-    const amenities = amenityLabels
-      .map((label) => lookups.amenities.get(label.toLowerCase()))
+    const fuelTypeRaw = String(get('fuelType') ?? '')
+      .trim()
+      .toUpperCase();
+    const fuelType = (Object.values(FuelType) as string[]).includes(
+      fuelTypeRaw,
+    )
+      ? fuelTypeRaw
+      : undefined;
+    if (fuelTypeRaw && !fuelType)
+      errors.push('fuelType must be PETROL, DIESEL, HYBRID, or ELECTRIC');
+
+    const conditionRaw = String(get('condition') ?? '')
+      .trim()
+      .toUpperCase();
+    const condition = (Object.values(CarCondition) as string[]).includes(
+      conditionRaw,
+    )
+      ? conditionRaw
+      : undefined;
+    if (conditionRaw && !condition) errors.push('condition must be NEW or USED');
+
+    const featureLabels = splitList(get('features'));
+    const features = featureLabels
+      .map((label) => lookups.features.get(label.toLowerCase()))
       .filter((id): id is string => Boolean(id));
-    const unresolvedAmenities = amenityLabels.filter(
-      (label) => !lookups.amenities.get(label.toLowerCase()),
+    const unresolvedFeatures = featureLabels.filter(
+      (label) => !lookups.features.get(label.toLowerCase()),
     );
-    if (unresolvedAmenities.length > 0)
-      errors.push(`amenities not found: ${unresolvedAmenities.join(', ')}`);
+    if (unresolvedFeatures.length > 0)
+      errors.push(`features not found: ${unresolvedFeatures.join(', ')}`);
 
-    const nearbyTagLabels = splitList(get('nearbyTags'));
-    const nearbyTags = nearbyTagLabels
-      .map((label) => lookups.nearbyTags.get(label.toLowerCase()))
+    const tagLabels = splitList(get('tags'));
+    const tags = tagLabels
+      .map((label) => lookups.tags.get(label.toLowerCase()))
       .filter((id): id is string => Boolean(id));
-    const unresolvedTags = nearbyTagLabels.filter(
-      (label) => !lookups.nearbyTags.get(label.toLowerCase()),
+    const unresolvedTags = tagLabels.filter(
+      (label) => !lookups.tags.get(label.toLowerCase()),
     );
     if (unresolvedTags.length > 0)
-      errors.push(`nearbyTags not found: ${unresolvedTags.join(', ')}`);
+      errors.push(`tags not found: ${unresolvedTags.join(', ')}`);
 
     const photoUrls = splitList(get('photos'));
     const photos = photoUrls.map((url, i) => ({ url, sortOrder: i }));
@@ -408,21 +443,28 @@ export class ListingDraftsService {
     const longitude = toNumber(get('longitude'));
 
     const data: Record<string, unknown> = {
-      propertyName,
+      title,
       description: get('description') ? String(get('description')) : undefined,
       purpose,
-      typeId,
+      modelId,
+      brandId,
       price,
       priceNegotiable: toBoolean(get('priceNegotiable')) ?? false,
-      bedrooms: toNumber(get('bedrooms')),
-      bathrooms: toNumber(get('bathrooms')),
-      area: toNumber(get('area')),
-      livingRooms: toNumber(get('livingRooms')),
-      parkingSpaces: toNumber(get('parkingSpaces')),
-      floorNumber: toNumber(get('floorNumber')),
-      totalFloors: toNumber(get('totalFloors')),
-      yearBuilt: toNumber(get('yearBuilt')),
-      furnishingId,
+      modelYear: toNumber(get('modelYear')),
+      mileage: toNumber(get('mileage')),
+      transmission,
+      fuelType,
+      condition,
+      exteriorColor: get('exteriorColor')
+        ? String(get('exteriorColor'))
+        : undefined,
+      interiorColor: get('interiorColor')
+        ? String(get('interiorColor'))
+        : undefined,
+      cylinders: toNumber(get('cylinders')),
+      doors: toNumber(get('doors')),
+      vin: get('vin') ? String(get('vin')) : undefined,
+      carTypeId,
       addressLine1: get('addressLine1')
         ? String(get('addressLine1'))
         : undefined,
@@ -430,15 +472,14 @@ export class ListingDraftsService {
         ? String(get('addressLine2'))
         : undefined,
       areaName: get('areaName') ? String(get('areaName')) : undefined,
-      municipalityId,
       contactPhone: get('contactPhone')
         ? String(get('contactPhone'))
         : undefined,
       contactWhatsapp: get('contactWhatsapp')
         ? String(get('contactWhatsapp'))
         : undefined,
-      amenities,
-      nearbyTags,
+      features,
+      tags,
       otherFeatures: get('otherFeatures')
         ? String(get('otherFeatures'))
         : undefined,
@@ -475,7 +516,7 @@ export class ListingDraftsService {
     };
 
     const [data, total] = await Promise.all([
-      this.prisma.listingDraft.findMany({
+      this.prisma.carListingDraft.findMany({
         where,
         skip,
         take: limit,
@@ -484,7 +525,7 @@ export class ListingDraftsService {
           createdBy: { select: { id: true, name: true, email: true } },
         },
       }),
-      this.prisma.listingDraft.count({ where }),
+      this.prisma.carListingDraft.count({ where }),
     ]);
 
     return {
@@ -494,7 +535,7 @@ export class ListingDraftsService {
   }
 
   async getDraft(id: string, userId: string, role: UserRole | undefined) {
-    const draft = await this.prisma.listingDraft.findUnique({ where: { id } });
+    const draft = await this.prisma.carListingDraft.findUnique({ where: { id } });
     if (!draft) throw new NotFoundException(`Draft "${id}" not found`);
     await this.resolveAgencyUserId(userId, role); // ensures caller is dealer/staff
     await this.assertSameAgency(draft.dealerUserId, userId);
@@ -503,12 +544,12 @@ export class ListingDraftsService {
 
   async discardDraft(id: string, userId: string, role: UserRole | undefined) {
     const draft = await this.getDraft(id, userId, role);
-    if (draft.status !== ListingDraftStatus.PENDING) {
+    if (draft.status !== CarListingDraftStatus.PENDING) {
       throw new BadRequestException('Only PENDING drafts can be discarded');
     }
-    return this.prisma.listingDraft.update({
+    return this.prisma.carListingDraft.update({
       where: { id },
-      data: { status: ListingDraftStatus.DISCARDED },
+      data: { status: CarListingDraftStatus.DISCARDED },
     });
   }
 
@@ -521,12 +562,12 @@ export class ListingDraftsService {
     draftId: string,
     userId: string,
   ): Promise<Record<string, unknown>> {
-    const draft = await this.prisma.listingDraft.findUnique({
+    const draft = await this.prisma.carListingDraft.findUnique({
       where: { id: draftId },
     });
     if (!draft) throw new NotFoundException(`Draft "${draftId}" not found`);
     await this.assertSameAgency(draft.dealerUserId, userId);
-    if (draft.status !== ListingDraftStatus.PENDING) {
+    if (draft.status !== CarListingDraftStatus.PENDING) {
       throw new BadRequestException(
         `Draft is already ${draft.status.toLowerCase()}`,
       );
@@ -536,10 +577,10 @@ export class ListingDraftsService {
 
   /** Marks a draft as consumed once its listing was successfully created. Best-effort — never throws. */
   async markDraftUsed(draftId: string, listingId: string): Promise<void> {
-    await this.prisma.listingDraft
+    await this.prisma.carListingDraft
       .update({
         where: { id: draftId },
-        data: { status: ListingDraftStatus.USED, listingId },
+        data: { status: CarListingDraftStatus.USED, listingId },
       })
       .catch(() => {});
   }

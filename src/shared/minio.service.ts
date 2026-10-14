@@ -11,7 +11,7 @@ export class MinioService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
-    this.bucket = this.configService.get<string>('MINIO_BUCKET', 'villasqatar');
+    this.bucket = this.configService.get<string>('MINIO_BUCKET', 'carsaudi');
 
     this.client = new Minio.Client({
       endPoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),

@@ -22,7 +22,7 @@ export class UpdateModeratorDto {
 
   @ApiPropertyOptional({
     description: 'Updated phone number',
-    example: '+97455512345',
+    example: '+96655512345',
   })
   @IsOptional()
   @IsString()
@@ -47,7 +47,7 @@ export class UpdateModeratorDto {
     description: 'Updated permissions array',
     enum: Permission,
     isArray: true,
-    example: [Permission.PROPERTIES_MANAGE, Permission.DEALERS_MANAGE],
+    example: [Permission.CARS_MANAGE, Permission.DEALERS_MANAGE],
   })
   @IsOptional()
   @IsArray()

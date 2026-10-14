@@ -9,7 +9,7 @@ import { VisitStatus } from '@prisma/client';
 import { LISTING_SELECT } from '../listings/listings.service';
 
 @Injectable()
-export class PropertyVisitsService {
+export class CarVisitsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async scheduleVisit(
@@ -18,7 +18,7 @@ export class PropertyVisitsService {
     scheduledAt: Date,
     notes?: string,
   ) {
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: listingId },
     });
     if (!listing) throw new NotFoundException('Listing not found');
@@ -26,7 +26,7 @@ export class PropertyVisitsService {
     const ownerId = listing.createdById;
 
     // Check if visit already exists
-    const existing = await this.prisma.propertyVisit.findFirst({
+    const existing = await this.prisma.carVisit.findFirst({
       where: {
         visitorId,
         listingId,
@@ -41,11 +41,11 @@ export class PropertyVisitsService {
     });
     if (existing) {
       throw new BadRequestException(
-        'You already have an active visit request for this property',
+        'You already have an active visit request for this listing',
       );
     }
 
-    return this.prisma.propertyVisit.create({
+    return this.prisma.carVisit.create({
       data: {
         listingId,
         visitorId,
@@ -58,7 +58,7 @@ export class PropertyVisitsService {
   }
 
   async getVisitsAsVisitor(visitorId: string) {
-    return this.prisma.propertyVisit.findMany({
+    return this.prisma.carVisit.findMany({
       where: { visitorId },
       include: {
         listing: { select: LISTING_SELECT },
@@ -72,7 +72,7 @@ export class PropertyVisitsService {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
-      this.prisma.propertyVisit.findMany({
+      this.prisma.carVisit.findMany({
         where: { ownerId },
         include: {
           listing: { select: LISTING_SELECT },
@@ -84,7 +84,7 @@ export class PropertyVisitsService {
         skip,
         take: limit,
       }),
-      this.prisma.propertyVisit.count({ where: { ownerId } }),
+      this.prisma.carVisit.count({ where: { ownerId } }),
     ]);
 
     return {
@@ -99,35 +99,35 @@ export class PropertyVisitsService {
   }
 
   async acceptVisit(ownerId: string, visitId: string) {
-    const visit = await this.prisma.propertyVisit.findUnique({
+    const visit = await this.prisma.carVisit.findUnique({
       where: { id: visitId },
     });
     if (!visit) throw new NotFoundException('Visit not found');
     if (visit.ownerId !== ownerId)
       throw new ForbiddenException('Not the owner');
 
-    return this.prisma.propertyVisit.update({
+    return this.prisma.carVisit.update({
       where: { id: visitId },
       data: { status: VisitStatus.ACCEPTED },
     });
   }
 
   async reconfirmVisit(ownerId: string, visitId: string, proposedAt: Date) {
-    const visit = await this.prisma.propertyVisit.findUnique({
+    const visit = await this.prisma.carVisit.findUnique({
       where: { id: visitId },
     });
     if (!visit) throw new NotFoundException('Visit not found');
     if (visit.ownerId !== ownerId)
       throw new ForbiddenException('Not the owner');
 
-    return this.prisma.propertyVisit.update({
+    return this.prisma.carVisit.update({
       where: { id: visitId },
       data: { status: VisitStatus.RESCHEDULED, proposedAt },
     });
   }
 
   async closeVisit(userId: string, visitId: string) {
-    const visit = await this.prisma.propertyVisit.findUnique({
+    const visit = await this.prisma.carVisit.findUnique({
       where: { id: visitId },
     });
     if (!visit) throw new NotFoundException('Visit not found');
@@ -138,7 +138,7 @@ export class PropertyVisitsService {
     const status =
       visit.ownerId === userId ? VisitStatus.REJECTED : VisitStatus.CANCELLED;
 
-    return this.prisma.propertyVisit.update({
+    return this.prisma.carVisit.update({
       where: { id: visitId },
       data: { status },
     });

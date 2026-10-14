@@ -27,16 +27,16 @@ const LISTING_SNAPSHOT_SELECT = {
   slug: true,
   referenceCode: true,
   status: true,
-  propertyName: true,
-  type: true,
+  title: true,
+  model: true,
   purpose: true,
   price: true,
   priceNegotiable: true,
   areaName: true,
-  municipality: true,
-  bedrooms: true,
-  bathrooms: true,
-  area: true,
+  brand: true,
+  modelYear: true,
+  mileage: true,
+  carType: true,
   addressLine1: true,
   contactPhone: true,
   contactWhatsapp: true,
@@ -101,13 +101,13 @@ export class ChatService {
    * Gets or creates a conversation for (userId ↔ listingId).
    * Participants added automatically:
    *   - The enquiring user
-   *   - The property owner (listing.createdById)
+   *   - The listing owner (listing.createdById)
    *   - The listing dealer (if the owner is a dealer)
    *   - All dealer staff
    */
   async getOrCreateConversation(userId: string, listingId: string) {
     // Verify listing exists
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: listingId },
       select: {
         ...LISTING_SNAPSHOT_SELECT,
@@ -163,7 +163,7 @@ export class ChatService {
     });
 
     if (!conversation) {
-      // Collect all participant IDs: enquirer + property owner + dealer staff
+      // Collect all participant IDs: enquirer + listing owner + dealer staff
       const participantIds = new Set<string>([userId, listing.createdById]);
 
       // If the listing owner is DEALER or DEALER_STAFF, also add all their staff
@@ -317,7 +317,7 @@ export class ChatService {
         }),
         this.prisma.chatConversation.findUnique({
           where: { id: conversationId },
-          select: { listing: { select: { propertyName: true } } },
+          select: { listing: { select: { title: true } } },
         }),
       ]);
       if (participants.length === 0) return;

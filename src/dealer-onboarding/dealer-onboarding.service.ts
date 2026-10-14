@@ -150,7 +150,7 @@ export class DealerOnboardingService {
         reraNumber: dto.reraNumber ?? null,
         address: dto.address ?? null,
         city: dto.city ?? null,
-        country: dto.country ?? 'Qatar',
+        country: dto.country ?? 'Saudi Arabia',
         website: dto.website ?? null,
         description: dto.description ?? null,
         additionalContacts: (dto.additionalContacts as any) ?? undefined,

@@ -349,11 +349,11 @@ export class AdminService {
    * Fetch total views, impressions, reach count, and individual listing analytics metrics.
    */
   async getAdminAnalytics(dto: GetAdminAnalyticsDto) {
-    const where: Prisma.ListingWhereInput = {};
+    const where: Prisma.CarListingWhereInput = {};
 
     if (dto.search) {
       where.OR = [
-        { propertyName: { contains: dto.search, mode: 'insensitive' } },
+        { title: { contains: dto.search, mode: 'insensitive' } },
         { slug: { contains: dto.search, mode: 'insensitive' } },
       ];
     }
@@ -366,8 +366,8 @@ export class AdminService {
       where.purpose = dto.purpose;
     }
 
-    if (dto.typeId) {
-      where.typeId = dto.typeId;
+    if (dto.modelId) {
+      where.modelId = dto.modelId;
     }
 
     if (dto.dealerId) {
@@ -410,7 +410,7 @@ export class AdminService {
     let totalListings = 0;
 
     if (!hasDateFilter) {
-      const aggregateTotals = await this.prisma.listing.aggregate({
+      const aggregateTotals = await this.prisma.carListing.aggregate({
         where,
         _sum: {
           viewsCount: true,
@@ -427,7 +427,7 @@ export class AdminService {
       totalReach = aggregateTotals._sum.reachCount ?? 0;
       totalListings = aggregateTotals._count.id ?? 0;
     } else {
-      const matchingListings = await this.prisma.listing.findMany({
+      const matchingListings = await this.prisma.carListing.findMany({
         where,
         select: { id: true },
       });
@@ -435,19 +435,19 @@ export class AdminService {
       const listingIds = matchingListings.map((l) => l.id);
 
       if (listingIds.length > 0) {
-        const logWhere: Prisma.ListingTrackingLogWhereInput = {
+        const logWhere: Prisma.CarListingTrackingLogWhereInput = {
           listingId: { in: listingIds },
           createdAt: dateFilter,
         };
 
         const [impCount, vCount, reachGroups] = await Promise.all([
-          this.prisma.listingTrackingLog.count({
+          this.prisma.carListingTrackingLog.count({
             where: { ...logWhere, type: TrackingLogType.IMPRESSION },
           }),
-          this.prisma.listingTrackingLog.count({
+          this.prisma.carListingTrackingLog.count({
             where: { ...logWhere, type: TrackingLogType.VIEW },
           }),
-          this.prisma.listingTrackingLog.groupBy({
+          this.prisma.carListingTrackingLog.groupBy({
             by: ['deviceId', 'listingId'],
             where: { ...logWhere, type: TrackingLogType.VIEW },
           }),
@@ -460,14 +460,14 @@ export class AdminService {
     }
 
     const [listings, totalFiltered] = await Promise.all([
-      this.prisma.listing.findMany({
+      this.prisma.carListing.findMany({
         where,
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         select: {
           id: true,
-          propertyName: true,
+          title: true,
           slug: true,
           status: true,
           purpose: true,
@@ -477,7 +477,7 @@ export class AdminService {
           reachCount: true,
           createdAt: true,
           updatedAt: true,
-          type: {
+          model: {
             select: {
               id: true,
               title: true,
@@ -499,14 +499,14 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.listing.count({ where }),
+      this.prisma.carListing.count({ where }),
     ]);
 
     let formattedListings = listings as any[];
 
     if (hasDateFilter && listings.length > 0) {
       const listingIdsPage = listings.map((l) => l.id);
-      const periodLogs = await this.prisma.listingTrackingLog.findMany({
+      const periodLogs = await this.prisma.carListingTrackingLog.findMany({
         where: {
           listingId: { in: listingIdsPage },
           createdAt: dateFilter,
@@ -558,7 +558,7 @@ export class AdminService {
         search: dto.search ?? null,
         status: dto.status ?? null,
         purpose: dto.purpose ?? null,
-        typeId: dto.typeId ?? null,
+        modelId: dto.modelId ?? null,
         dealerId: dto.dealerId ?? null,
         sortBy,
         sortOrder,
@@ -644,15 +644,15 @@ export class AdminService {
       this.prisma.user.count({
         where: { role: UserRole.DEALER, createdAt: periodFilter },
       }),
-      this.prisma.listing.count(),
-      this.prisma.listing.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count(),
+      this.prisma.carListing.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.carListing.count({
         where: { status: { in: ['PENDING', 'RESUBMITTED'] } },
       }),
-      this.prisma.listing.count({ where: { status: 'REJECTED' } }),
-      this.prisma.listing.count({ where: { status: 'SOLD' } }),
-      this.prisma.listing.count({ where: { createdAt: periodFilter } }),
-      this.prisma.listing.aggregate({
+      this.prisma.carListing.count({ where: { status: 'REJECTED' } }),
+      this.prisma.carListing.count({ where: { status: 'SOLD' } }),
+      this.prisma.carListing.count({ where: { createdAt: periodFilter } }),
+      this.prisma.carListing.aggregate({
         where: { status: 'SOLD' },
         _sum: { price: true },
       }),
@@ -672,15 +672,15 @@ export class AdminService {
         where: { paymentStatus: 'PAID', createdAt: periodFilter },
         _sum: { paidAmount: true },
       }),
-      this.prisma.listing.aggregate({
+      this.prisma.carListing.aggregate({
         where: { paymentStatus: 'PAID' },
         _sum: { paidAmount: true },
       }),
-      this.prisma.listing.aggregate({
+      this.prisma.carListing.aggregate({
         where: { paymentStatus: 'PAID', createdAt: periodFilter },
         _sum: { paidAmount: true },
       }),
-      this.prisma.listing.aggregate({
+      this.prisma.carListing.aggregate({
         _sum: {
           viewsCount: true,
           impressionsCount: true,
@@ -688,13 +688,13 @@ export class AdminService {
           whatsappClicksCount: true,
         },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: { type: TrackingLogType.IMPRESSION, createdAt: periodFilter },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: { type: TrackingLogType.VIEW, createdAt: periodFilter },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: {
           type: TrackingLogType.WHATSAPP_CLICK,
           createdAt: periodFilter,
@@ -754,11 +754,11 @@ export class AdminService {
         where: { role: UserRole.DEALER, createdAt: periodFilter },
         select: { createdAt: true },
       }),
-      this.prisma.listing.findMany({
+      this.prisma.carListing.findMany({
         where: { createdAt: periodFilter },
         select: { createdAt: true },
       }),
-      this.prisma.listing.findMany({
+      this.prisma.carListing.findMany({
         where: {
           status: 'SOLD',
           OR: [
@@ -776,7 +776,7 @@ export class AdminService {
         where: { paymentStatus: 'PAID', createdAt: periodFilter },
         select: { createdAt: true, paidAmount: true },
       }),
-      this.prisma.listing.findMany({
+      this.prisma.carListing.findMany({
         where: { paymentStatus: 'PAID', createdAt: periodFilter },
         select: { createdAt: true, paidAmount: true },
       }),
@@ -944,7 +944,7 @@ export class AdminService {
           where: { paymentStatus: 'PAID' },
           _sum: { paidAmount: true },
         }),
-        this.prisma.listing.groupBy({
+        this.prisma.carListing.groupBy({
           by: ['createdById'],
           where: { paymentStatus: 'PAID' },
           _sum: { paidAmount: true },

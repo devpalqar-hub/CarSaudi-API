@@ -34,7 +34,7 @@ import { UpdateDealerPlanDto } from './dto/update-dealer-plan.dto';
 // ─────────────────────────────────────────────────────────────────────────────
 
 @ApiTags('Dealer Subscription Plans — Admin')
-@Controller('protected/villasqatar/admin/dealer-subscription-plans')
+@Controller('protected/carsaudi/admin/dealer-subscription-plans')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)
 @ApiBearerAuth('JWT-auth')
@@ -49,8 +49,8 @@ export class DealerSubscriptionPlansAdminController {
       'Creates a new dealer agency subscription plan. Plans define:\n' +
       '- `maxListings`: max active listings allowed (0 = unlimited)\n' +
       '- `validityDays`: plan duration in days\n' +
-      '- `price`: plan cost in QAR (0 = free, activated without Stripe)\n' +
-      '- `boostDiscountPercent`: discount applied when dealer requests a featured property boost',
+      '- `price`: plan cost in SAR (0 = free, activated without Stripe)\n' +
+      '- `boostDiscountPercent`: discount applied when dealer requests a featured listing boost',
   })
   @ApiResponse({ status: 201, description: 'Dealer subscription plan created' })
   @ApiResponse({ status: 403, description: 'SUPER_ADMIN required' })
@@ -114,7 +114,7 @@ export class DealerSubscriptionPlansAdminController {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @ApiTags('Dealer Subscriptions — Admin')
-@Controller('protected/villasqatar/admin/dealer-subscriptions')
+@Controller('protected/carsaudi/admin/dealer-subscriptions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)
 @ApiBearerAuth('JWT-auth')

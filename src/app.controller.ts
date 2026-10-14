@@ -58,7 +58,7 @@ export class AppController {
           type: 'boolean',
           default: false,
           description:
-            'Stamp the VillasQatar watermark on the image even when the uploader is authenticated.',
+            'Stamp the CarSaudi watermark on the image even when the uploader is authenticated.',
         },
       },
     },

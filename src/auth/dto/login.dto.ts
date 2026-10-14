@@ -6,7 +6,7 @@ export class LoginDto {
     description: 'User email address or phone number',
     examples: {
       email: { value: 'john.doe@example.com' },
-      phone: { value: '+97412345678' },
+      phone: { value: '+96612345678' },
     },
     example: 'john.doe@example.com',
   })

@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsBoolean,
   IsInt,
   IsNumber,
   IsOptional,
@@ -11,91 +10,82 @@ import {
 
 export class PriceEstimationDto {
   @ApiProperty({
-    description: 'The location/area in Qatar',
-    example: 'The Pearl',
+    description: 'The car brand',
+    example: 'Toyota',
   })
   @IsString()
-  areaName: string;
+  brand: string;
 
   @ApiProperty({
-    description: 'Size of the property in square feet',
-    example: 1200,
+    description: 'The car model',
+    example: 'Camry',
+  })
+  @IsString()
+  carModel: string;
+
+  @ApiProperty({
+    description: 'Year the car was manufactured',
+    example: 2021,
+  })
+  @Type(() => Number)
+  @IsInt()
+  modelYear: number;
+
+  @ApiProperty({
+    description: 'Mileage driven, in kilometres',
+    example: 45000,
   })
   @Type(() => Number)
   @IsNumber()
-  areaSqft: number;
-
-  @ApiProperty({ description: 'Type of property', example: 'Apartment' })
-  @IsString()
-  propertyType: string;
-
-  @ApiPropertyOptional({ description: 'Number of bedrooms (BHK)', example: 2 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  bhk?: number;
-
-  @ApiPropertyOptional({ description: 'Number of bathrooms', example: 2 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  bathrooms?: number;
+  mileage: number;
 
   @ApiPropertyOptional({
-    description: 'Furnishing status',
-    example: 'Furnished',
+    description: 'Car type (body style)',
+    example: 'Sedan',
   })
   @IsOptional()
   @IsString()
-  furnishingStatus?: string;
+  carType?: string;
 
   @ApiPropertyOptional({
-    description: 'Which floor the property is on',
-    example: 5,
+    description: 'Car condition',
+    example: 'Used',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  floorAbove?: number;
+  @IsString()
+  condition?: string;
 
   @ApiPropertyOptional({
-    description: 'Total floors in the building',
-    example: 10,
+    description: 'Fuel type',
+    example: 'Petrol',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  totalFloors?: number;
+  @IsString()
+  fuelType?: string;
 
   @ApiPropertyOptional({
-    description: 'Whether parking is available',
-    example: true,
+    description: 'Transmission type',
+    example: 'Automatic',
   })
   @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  parkingAvailable?: boolean;
+  @IsString()
+  transmission?: string;
 
   @ApiPropertyOptional({
-    description: 'Optional highlights/features',
-    example: 'balcony with a sea view',
+    description: 'Optional highlights/notes',
+    example: 'single owner, accident-free',
   })
   @IsOptional()
   @IsString()
   highlights?: string;
 
   @ApiPropertyOptional({
-    description: 'Array of amenities or features available',
-    example: [
-      'Swimming Pool',
-      'Gym / Fitness Center',
-      'Central A/C',
-      'Balcony',
-    ],
+    description: 'Array of notable features',
+    example: ['Sunroof', 'Leather Seats', 'Navigation System'],
     type: [String],
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  amenities?: string[];
+  features?: string[];
 }

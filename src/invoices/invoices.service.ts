@@ -33,7 +33,7 @@ export class InvoicesService {
   ) {}
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Company (seller) details — Qatar standard invoice header. Configure the real
+  // Company (seller) details — Saudi standard invoice header. Configure the real
   // Commercial Registration number, address, etc. via env vars in production.
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -41,23 +41,23 @@ export class InvoicesService {
     return {
       name: this.configService.get<string>(
         'INVOICE_COMPANY_NAME',
-        'VillasQatar',
+        'CarSaudi',
       ),
       nameAr: this.configService.get<string>('INVOICE_COMPANY_NAME_AR', ''),
       crNumber: this.configService.get<string>('INVOICE_COMPANY_CR_NUMBER', ''),
       address: this.configService.get<string>(
         'INVOICE_COMPANY_ADDRESS',
-        'Doha, Qatar',
+        'Riyadh, Saudi Arabia',
       ),
       phone: this.configService.get<string>('INVOICE_COMPANY_PHONE', ''),
       email: this.configService.get<string>(
         'INVOICE_COMPANY_EMAIL',
-        'billing@villasqatar.com',
+        'billing@carsaudi.com',
       ),
     };
   }
 
-  /** Qatar currently has no general VAT in effect — defaults to 0%, configurable for the future. */
+  /** Saudi Arabia currently has a 15% general VAT — defaults to 0%, configurable per deployment. */
   private getVatRate(): number {
     return Number(this.configService.get<string>('INVOICE_VAT_RATE', '0')) || 0;
   }
@@ -98,7 +98,7 @@ export class InvoicesService {
             vatRate,
             vatAmount,
             totalAmount,
-            currency: 'QAR',
+            currency: 'SAR',
             paymentMethod:
               input.status === InvoiceStatus.FREE
                 ? 'N/A'
@@ -248,14 +248,14 @@ export class InvoicesService {
           <tr>
             <td style="padding:8px 12px; border-bottom:1px solid #eee;">${item.description}</td>
             <td style="padding:8px 12px; border-bottom:1px solid #eee; text-align:right;">${item.quantity}</td>
-            <td style="padding:8px 12px; border-bottom:1px solid #eee; text-align:right;">QAR ${item.unitPrice.toFixed(2)}</td>
-            <td style="padding:8px 12px; border-bottom:1px solid #eee; text-align:right;">QAR ${item.amount.toFixed(2)}</td>
+            <td style="padding:8px 12px; border-bottom:1px solid #eee; text-align:right;">SAR ${item.unitPrice.toFixed(2)}</td>
+            <td style="padding:8px 12px; border-bottom:1px solid #eee; text-align:right;">SAR ${item.amount.toFixed(2)}</td>
           </tr>`,
       )
       .join('');
 
     // No repeated brand banner here — MailService already prepends the
-    // VillasQatar logo above every email, so this card leads straight into
+    // CarSaudi logo above every email, so this card leads straight into
     // the invoice content.
     return `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
@@ -289,15 +289,15 @@ export class InvoicesService {
           <table style="width:100%; font-size:0.9em; margin-bottom:24px;">
             <tr>
               <td style="text-align:right; padding:4px 12px; color:#666;">Subtotal</td>
-              <td style="text-align:right; padding:4px 12px; width:120px;">QAR ${invoice.subtotal.toFixed(2)}</td>
+              <td style="text-align:right; padding:4px 12px; width:120px;">SAR ${invoice.subtotal.toFixed(2)}</td>
             </tr>
             <tr>
               <td style="text-align:right; padding:4px 12px; color:#666;">VAT (${invoice.vatRate.toFixed(0)}%)</td>
-              <td style="text-align:right; padding:4px 12px;">QAR ${invoice.vatAmount.toFixed(2)}</td>
+              <td style="text-align:right; padding:4px 12px;">SAR ${invoice.vatAmount.toFixed(2)}</td>
             </tr>
             <tr>
               <td style="text-align:right; padding:8px 12px; font-weight:bold; font-size:1.1em; border-top:2px solid #8a1538;">Total</td>
-              <td style="text-align:right; padding:8px 12px; font-weight:bold; font-size:1.1em; border-top:2px solid #8a1538; color:#8a1538;">QAR ${invoice.totalAmount.toFixed(2)}</td>
+              <td style="text-align:right; padding:8px 12px; font-weight:bold; font-size:1.1em; border-top:2px solid #8a1538; color:#8a1538;">SAR ${invoice.totalAmount.toFixed(2)}</td>
             </tr>
           </table>
 

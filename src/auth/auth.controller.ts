@@ -48,7 +48,7 @@ const EXISTING_USER_RESPONSE = {
       id: 'clxyz123...',
       name: 'John Doe',
       email: 'john@example.com',
-      phone: '+97412345678',
+      phone: '+96612345678',
       role: 'USER',
       authProvider: 'WHATSAPP_OTP',
       isProfileComplete: true,
@@ -68,7 +68,7 @@ const COMPLETE_PROFILE_RESPONSE = {
       id: 'clxyz123...',
       name: 'John Doe',
       email: 'john@example.com',
-      phone: '+97412345678',
+      phone: '+96612345678',
       role: 'USER',
       authProvider: 'GOOGLE',
       isProfileComplete: true,
@@ -101,7 +101,7 @@ export class AuthController {
     schema: {
       example: {
         message:
-          'OTP sent to WhatsApp number +97412345678. Valid for 5 minutes.',
+          'OTP sent to WhatsApp number +96612345678. Valid for 5 minutes.',
       },
     },
   })
@@ -312,7 +312,7 @@ export class AuthController {
         profile: {
           id: 'clxyz123...',
           name: 'Admin User',
-          email: 'admin@villasqatar.com',
+          email: 'admin@carsaudi.com',
           role: 'SUPER_ADMIN',
           isProfileComplete: true,
         },
@@ -349,7 +349,7 @@ export class AuthController {
     schema: {
       example: {
         message:
-          'If an account exists for admin@villasqatar.com, a password reset OTP has been sent.',
+          'If an account exists for admin@carsaudi.com, a password reset OTP has been sent.',
       },
     },
   })

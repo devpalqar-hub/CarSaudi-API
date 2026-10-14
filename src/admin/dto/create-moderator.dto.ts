@@ -23,7 +23,7 @@ export class CreateModeratorDto {
 
   @ApiProperty({
     description: 'Email address for login',
-    example: 'moderator@villasqatar.com',
+    example: 'moderator@carsaudi.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
@@ -47,7 +47,7 @@ export class CreateModeratorDto {
     description: 'List of permissions to grant to this moderator',
     enum: Permission,
     isArray: true,
-    example: [Permission.PROPERTIES_MANAGE, Permission.USERS_VIEW],
+    example: [Permission.CARS_MANAGE, Permission.USERS_VIEW],
   })
   @IsArray()
   @ArrayMinSize(1, { message: 'At least one permission must be assigned' })
@@ -56,7 +56,7 @@ export class CreateModeratorDto {
 
   @ApiPropertyOptional({
     description: 'Phone number of the moderator',
-    example: '+97455512345',
+    example: '+96655512345',
   })
   @IsOptional()
   @IsString()
@@ -65,7 +65,7 @@ export class CreateModeratorDto {
   @ApiPropertyOptional({
     description:
       'Internal notes about this moderator (visible to super admins only)',
-    example: 'Handles Qatar region listings',
+    example: 'Handles Riyadh region listings',
   })
   @IsOptional()
   @IsString()

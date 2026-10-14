@@ -18,7 +18,7 @@ export class CreateSuperAdminDto {
 
   @ApiProperty({
     description: 'Email address for login',
-    example: 'superadmin@villasqatar.com',
+    example: 'superadmin@carsaudi.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()

@@ -46,8 +46,8 @@ export class GetAdminAnalyticsDto {
   limit?: number = 10;
 
   @ApiPropertyOptional({
-    description: 'Search term for property name or slug',
-    example: 'villa',
+    description: 'Search term for listing title or slug',
+    example: 'camry',
   })
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
@@ -82,7 +82,7 @@ export class GetAdminAnalyticsDto {
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
   @IsString()
-  typeId?: string;
+  modelId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by dealer/creator user ID' })
   @IsOptional()

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VillasQatar Chat Tester</title>
+  <title>CarSaudi Chat Tester</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -997,7 +997,7 @@
 
         // System message with listing info
         if (data.listing) {
-          addSystemMessage(panel, `📋 ${data.listing.propertyName || 'Property'} — ${data.listing.purpose} — ${data.listing.price ? 'QAR ' + data.listing.price.toLocaleString() : 'N/A'}`);
+          addSystemMessage(panel, `📋 ${data.listing.title || 'Car'} — ${data.listing.purpose} — ${data.listing.price ? 'SAR ' + data.listing.price.toLocaleString() : 'N/A'}`);
         }
 
         if (data.messages && data.messages.length > 0) {
@@ -1092,7 +1092,7 @@
           item.innerHTML = `
         <div class="conv-icon">🏠</div>
         <div class="conv-info">
-          <div class="conv-name">${conv.listing?.propertyName || 'Property'}</div>
+          <div class="conv-name">${conv.listing?.title || 'Car'}</div>
           <div class="conv-preview">${preview}</div>
         </div>
       `;

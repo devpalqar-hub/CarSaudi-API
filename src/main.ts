@@ -51,9 +51,9 @@ async function bootstrap() {
   // SwaggerModule.createDocument() auto-discovers all @ApiTags() from controllers.
   // This means any new module with @ApiTags() will appear in Swagger automatically.
   const config = new DocumentBuilder()
-    .setTitle('VillasQatar API')
+    .setTitle('CarSaudi API')
     .setDescription(
-      'REST API for VillasQatar — Property listing platform.\n\n' +
+      'REST API for CarSaudi — Car listing & marketplace platform.\n\n' +
         '**User Roles**: `SUPER_ADMIN` | `MODERATOR` | `DEALER` | `DEALER_STAFF` | `USER`\n\n' +
         '**Authentication**: Use `POST /api/auth/login` to get a Bearer token, then click **Authorize** above and paste it.',
     )

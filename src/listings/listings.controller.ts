@@ -48,34 +48,34 @@ import { DeviceId } from '../shared/decorators/device-id.decorator';
 export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
 
-  // ─── Options (amenities / nearby tags lists) ───────────────────────────────
+  // ─── Options (brands / models / car types / features / tags lists) ───────
 
   @Get('options')
   @ApiOperation({
     summary: 'Get predefined option lists',
     description:
-      'Returns the full lists of allowed amenities, nearby tags, furnishing options, and Qatar area suggestions ' +
-      'for use in listing creation forms.',
+      'Returns the full lists of car brands, car models, car types, features, tags, and Saudi Arabia area ' +
+      'suggestions for use in listing creation forms.',
   })
   @ApiResponse({ status: 200, description: 'Option lists returned' })
   async getOptions() {
     return this.listingsService.getOptions();
   }
 
-  // ─── Popular Places ────────────────────────────────────────────────────────
+  // ─── Popular Brands ────────────────────────────────────────────────────────
 
-  @Get('popular-places')
+  @Get('popular-brands')
   @ApiOperation({
-    summary: 'Get popular places (municipalities)',
+    summary: 'Get popular car brands',
     description:
-      'Returns active popular municipalities in Qatar with total active listings count for each place.',
+      'Returns active popular car brands in Saudi Arabia with total active listings count for each brand.',
   })
   @ApiResponse({
     status: 200,
-    description: 'List of popular places with active listing counts',
+    description: 'List of popular car brands with active listing counts',
   })
-  getPopularPlaces() {
-    return this.listingsService.getPopularPlaces();
+  getPopularBrands() {
+    return this.listingsService.getPopularBrands();
   }
 
   // ─── Nearby Listings ───────────────────────────────────────────────────────
@@ -84,9 +84,9 @@ export class ListingsController {
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Find nearby active listings by coordinates',
+    summary: 'Find nearby active car listings by coordinates',
     description:
-      'Returns active property listings sorted by straight-line distance from user coordinates.',
+      'Returns active car listings sorted by straight-line distance from user coordinates.',
   })
   @ApiResponse({
     status: 200,
@@ -104,7 +104,7 @@ export class ListingsController {
 
   @Get('geocode')
   @ApiOperation({
-    summary: 'Convert a location/area string in Qatar to GPS coordinates',
+    summary: 'Convert a location/area string in Saudi Arabia to GPS coordinates',
     description:
       'Searches DB cache first using partial/like matching. ' +
       'If not found, calls Google Maps Geocoding API, caches the result in DB, and returns JSON payload.',
@@ -130,9 +130,9 @@ export class ListingsController {
 
   @Post('estimate-price')
   @ApiOperation({
-    summary: 'Estimate property price using AI',
+    summary: 'Estimate car price using AI',
     description:
-      'Returns an AI-estimated min, max, and average price range based on the provided property details.',
+      'Returns an AI-estimated min, max, and average price range based on the provided car details.',
   })
   @ApiResponse({
     status: 200,
@@ -154,7 +154,7 @@ export class ListingsController {
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Create a new property listing',
+    summary: 'Create a new car listing',
     description:
       'Any authenticated user (individual or dealer) can create a listing. A 50-metre spam check ' +
       'runs automatically on the provided coordinates. Always created with status `PENDING` and goes ' +
@@ -220,11 +220,11 @@ export class ListingsController {
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Browse active property listings (public)',
+    summary: 'Browse active car listings (public)',
     description:
       'Returns ACTIVE and SOLD listings. Supports rich filtering: ' +
-      'type, purpose, municipality, areaName, price range, bedrooms, bathrooms, area, ' +
-      'furnishing, nearbyTag, search text, and sortBy / sortOrder. ' +
+      'model, purpose, brand, areaName, price range, modelYear, mileage, fuelType, transmission, ' +
+      'condition, carType, feature, tag, search text, and sortBy / sortOrder. ' +
       'Each listing includes `isWishlisted` and `isFeatured` boolean flags.',
   })
   @ApiResponse({
@@ -290,7 +290,7 @@ export class ListingsController {
 
   @Get('admin')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.PROPERTIES_VIEW)
+  @RequirePermissions(Permission.CARS_VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Admin: Browse all listings (all statuses)',
@@ -325,7 +325,7 @@ export class ListingsController {
       items: {
         type: 'object',
         properties: {
-          slug: { type: 'string', example: 'pearl-villa-with-pool-a1b2c3' },
+          slug: { type: 'string', example: '2022-toyota-camry-se-a1b2c3' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
@@ -434,17 +434,17 @@ export class ListingsController {
     return this.listingsService.trackWhatsappClick(id, deviceId);
   }
 
-  // ─── Per-Property Analytics (admin + dealer) ───────────────────────────────
+  // ─── Per-Listing Analytics (admin + dealer) ────────────────────────────────
 
   @Get(':id/analytics')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Property analytics (admin: any listing; dealer/owner: their own)',
+    summary: 'Listing analytics (admin: any listing; dealer/owner: their own)',
     description:
-      'Dedicated per-property analytics — same data as the `analytics` block on ' +
+      'Dedicated per-listing analytics — same data as the `analytics` block on ' +
       'GET /listings/:id, but standalone so a dashboard can fetch just this. ' +
-      'Admins/moderators can view any property. Dealers/dealer staff can view listings ' +
+      'Admins/moderators can view any listing. Dealers/dealer staff can view listings ' +
       "belonging to their own agency (including a dealer viewing their staff's listings and " +
       'vice-versa). Regular users can view their own listings. Returns total + period ' +
       'views, reach, impressions, WhatsApp clicks, messages started, distinct users engaged, ' +
@@ -452,10 +452,10 @@ export class ListingsController {
       'growth % vs the preceding period of equal length.',
   })
   @ApiParam({ name: 'id', description: 'Listing CUID or Slug' })
-  @ApiResponse({ status: 200, description: 'Property analytics' })
+  @ApiResponse({ status: 200, description: 'Listing analytics' })
   @ApiResponse({
     status: 403,
-    description: "No access to this property's analytics",
+    description: "No access to this listing's analytics",
   })
   @ApiResponse({ status: 404, description: 'Listing not found' })
   getListingAnalytics(
@@ -476,7 +476,7 @@ export class ListingsController {
 
   @Get(':id/history')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.PROPERTIES_VIEW)
+  @RequirePermissions(Permission.CARS_VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Admin: Get full review / rejection history for a listing',
@@ -526,7 +526,7 @@ export class ListingsController {
 
   @Patch(':id/admin-edit')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.PROPERTIES_MANAGE)
+  @RequirePermissions(Permission.CARS_MANAGE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Admin: Edit any field of a listing',
@@ -583,7 +583,7 @@ export class ListingsController {
 
   @Post(':id/approve')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.PROPERTIES_REVIEW)
+  @RequirePermissions(Permission.CARS_REVIEW)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -619,7 +619,7 @@ export class ListingsController {
 
   @Post(':id/reject')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.PROPERTIES_REVIEW)
+  @RequirePermissions(Permission.CARS_REVIEW)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

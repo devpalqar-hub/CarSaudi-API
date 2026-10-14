@@ -118,8 +118,8 @@ export class DealerOnboardingController {
         reraNumber: { type: 'string', example: 'RERA-2024-67890' },
         address: { type: 'string', example: 'Office 12, Al Sadd Street' },
         city: { type: 'string', example: 'Doha' },
-        country: { type: 'string', example: 'Qatar' },
-        website: { type: 'string', example: 'https://pearlrealestate.qa' },
+        country: { type: 'string', example: 'Saudi Arabia' },
+        website: { type: 'string', example: 'https://alfaisalmotors.sa' },
         description: {
           type: 'string',
           example: 'Luxury real estate agency...',
@@ -217,8 +217,8 @@ export class DealerOnboardingController {
         reraNumber: { type: 'string', example: 'RERA-2024-67890' },
         address: { type: 'string', example: 'Office 12, Al Sadd Street' },
         city: { type: 'string', example: 'Doha' },
-        country: { type: 'string', example: 'Qatar' },
-        website: { type: 'string', example: 'https://pearlrealestate.qa' },
+        country: { type: 'string', example: 'Saudi Arabia' },
+        website: { type: 'string', example: 'https://alfaisalmotors.sa' },
         description: {
           type: 'string',
           example: 'Luxury real estate agency...',

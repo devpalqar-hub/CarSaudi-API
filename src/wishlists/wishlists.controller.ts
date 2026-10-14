@@ -32,7 +32,7 @@ export class WishlistsController {
   @ApiOperation({ summary: 'Get all wishlisted listings for the current user' })
   @ApiResponse({
     status: 200,
-    description: 'List of wishlisted properties with full details',
+    description: 'List of wishlisted car listings with full details',
   })
   getMyWishlists(@CurrentUser('id') userId: string) {
     return this.wishlistsService.getMyWishlists(userId);

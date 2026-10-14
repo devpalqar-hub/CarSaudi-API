@@ -19,7 +19,7 @@ export interface CreateInvoiceInput {
   referenceId: string;
   /** Account being billed — a USER id, or a DEALER id (never a DEALER_STAFF id) */
   billedToId: string;
-  /** Invoice title, e.g. "Featured Listing — The Pearl Villa" */
+  /** Invoice title, e.g. "Featured Listing — 2022 Toyota Camry" */
   description: string;
   lineItems: InvoiceLineItem[];
   /** Sum of lineItems' amounts, before VAT */

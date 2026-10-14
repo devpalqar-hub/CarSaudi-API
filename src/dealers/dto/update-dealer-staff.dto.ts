@@ -10,7 +10,7 @@ export class UpdateDealerStaffDto extends PartialType(
     enum: DealerStaffPermission,
     isArray: true,
     description: 'Replacement list of permissions (replaces existing set)',
-    example: [DealerStaffPermission.PROPERTY_LISTINGS_VIEW],
+    example: [DealerStaffPermission.CAR_LISTINGS_VIEW],
   })
   @IsOptional()
   @IsArray()

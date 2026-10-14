@@ -30,7 +30,7 @@ export class ApplyStep1Dto {
 
   @ApiProperty({
     description: 'Business email address',
-    example: 'ahmed@pearlrealestate.qa',
+    example: 'ahmed@alfaisalmotors.sa',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
@@ -38,12 +38,12 @@ export class ApplyStep1Dto {
 
   @ApiProperty({
     description: 'Contact phone number in E.164 format',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsString()
   @IsNotEmpty()
   @Matches(/^\+?[1-9]\d{6,14}$/, {
-    message: 'Phone must be in E.164 format (e.g. +97412345678)',
+    message: 'Phone must be in E.164 format (e.g. +96612345678)',
   })
   phone: string;
 }

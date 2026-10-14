@@ -1,16 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ListingPurpose } from '@prisma/client';
+import {
+  CarCondition,
+  FuelType,
+  ListingPurpose,
+  TransmissionType,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
-  IsIn,
   IsInt,
-  IsJSON,
-  IsLatitude,
-  IsLongitude,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -30,10 +31,10 @@ export class CreateListingDto {
 
   @ApiPropertyOptional({
     description:
-      'ID of a PENDING ListingDraft (from a dealer bulk JSON/Excel/CSV upload) to create this listing ' +
-      "from. The draft's parsed data is used as the base — any other fields you pass in this request " +
-      'override it. When set, `propertyName` / `purpose` / `typeId` / `price` below become optional ' +
-      "since they're expected to come from the draft.",
+      'ID of a PENDING CarListingDraft (from a dealer bulk JSON/Excel/CSV upload) to create this ' +
+      "listing from. The draft's parsed data is used as the base — any other fields you pass in this " +
+      'request override it. When set, `title` / `purpose` / `modelId` / `brandId` / `price` below ' +
+      "become optional since they're expected to come from the draft.",
     example: 'clxyzdraft123',
   })
   @IsOptional()
@@ -43,19 +44,19 @@ export class CreateListingDto {
   // ── Core ──────────────────────────────────────────────────────────────────
 
   @ApiProperty({
-    description: 'Property name / title. Optional when `draftId` is provided.',
-    example: 'Luxury 4-BR Villa in The Pearl Qatar',
+    description: 'Listing title. Optional when `draftId` is provided.',
+    example: '2022 Toyota Camry SE — Excellent Condition',
   })
   @ValidateIf((o) => !o.draftId)
   @IsString()
   @IsNotEmpty()
-  @MinLength(5, { message: 'Property name must be at least 5 characters' })
-  propertyName: string;
+  @MinLength(5, { message: 'Title must be at least 5 characters' })
+  title: string;
 
   @ApiPropertyOptional({
-    description: 'Detailed description of the property',
+    description: 'Detailed description of the car',
     example:
-      'Stunning 4-bedroom villa with private pool, sea view, and fully landscaped garden...',
+      'Single owner, accident-free, full service history, GCC spec, immaculate condition...',
   })
   @IsOptional()
   @IsString()
@@ -72,144 +73,160 @@ export class CreateListingDto {
   purpose: ListingPurpose;
 
   @ApiProperty({
-    description:
-      'ID of the property type category. Optional when `draftId` is provided.',
+    description: 'ID of the car model. Optional when `draftId` is provided.',
     example: 'cuid...',
   })
   @ValidateIf((o) => !o.draftId)
   @IsString()
   @IsNotEmpty()
-  typeId: string;
+  modelId: string;
+
+  @ApiProperty({
+    description: 'ID of the car brand. Optional when `draftId` is provided.',
+    example: 'cuid...',
+  })
+  @ValidateIf((o) => !o.draftId)
+  @IsString()
+  @IsNotEmpty()
+  brandId: string;
 
   // ── GPS ───────────────────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
     description: 'Latitude coordinate (WGS-84)',
-    example: 25.3548,
+    example: 24.7136,
   })
   @IsOptional()
-  @IsLatitude()
   @Type(() => Number)
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
   latitude?: number;
 
   @ApiPropertyOptional({
     description: 'Longitude coordinate (WGS-84)',
-    example: 51.1839,
+    example: 46.6753,
   })
   @IsOptional()
-  @IsLongitude()
   @Type(() => Number)
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
   longitude?: number;
 
-  // ── Common Property Details ───────────────────────────────────────────────
+  // ── Common Car Details ────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description: 'Number of bedrooms (0 = studio)',
-    example: 4,
-    minimum: 0,
-    maximum: 50,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(50)
-  @Type(() => Number)
-  bedrooms?: number;
-
-  @ApiPropertyOptional({
-    description: 'Number of bathrooms',
-    example: 3,
-    minimum: 0,
-    maximum: 50,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(50)
-  @Type(() => Number)
-  bathrooms?: number;
-
-  @ApiPropertyOptional({
-    description: 'Total built-up area in square metres',
-    example: 450.5,
-  })
-  @IsOptional()
-  @IsNumber()
-  @IsPositive()
-  @Type(() => Number)
-  area?: number;
-
-  @ApiPropertyOptional({
-    description: 'Number of living / reception rooms',
-    example: 2,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(20)
-  @Type(() => Number)
-  livingRooms?: number;
-
-  @ApiPropertyOptional({ description: 'Number of parking spaces', example: 2 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(20)
-  @Type(() => Number)
-  parkingSpaces?: number;
-
-  @ApiPropertyOptional({
-    description: 'Floor number in the building',
-    example: 5,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Type(() => Number)
-  floorNumber?: number;
-
-  @ApiPropertyOptional({
-    description: 'Total number of floors in the building',
-    example: 20,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  totalFloors?: number;
-
-  @ApiPropertyOptional({
-    description: 'Year the property was built',
-    example: 2019,
+    description: 'Year the car was manufactured',
+    example: 2022,
+    minimum: 1970,
+    maximum: 2030,
   })
   @IsOptional()
   @IsInt()
   @Min(1970)
   @Max(2030)
   @Type(() => Number)
-  yearBuilt?: number;
+  modelYear?: number;
 
   @ApiPropertyOptional({
-    description: 'ID of the furnishing status of the property',
+    description: 'Mileage driven, in kilometres',
+    example: 35000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  mileage?: number;
+
+  @ApiPropertyOptional({
+    enum: TransmissionType,
+    description: 'Transmission type',
+    example: TransmissionType.AUTOMATIC,
+  })
+  @IsOptional()
+  @IsEnum(TransmissionType)
+  transmission?: TransmissionType;
+
+  @ApiPropertyOptional({
+    enum: FuelType,
+    description: 'Fuel type',
+    example: FuelType.PETROL,
+  })
+  @IsOptional()
+  @IsEnum(FuelType)
+  fuelType?: FuelType;
+
+  @ApiPropertyOptional({
+    enum: CarCondition,
+    description: 'Car condition',
+    example: CarCondition.USED,
+    default: CarCondition.USED,
+  })
+  @IsOptional()
+  @IsEnum(CarCondition)
+  condition?: CarCondition;
+
+  @ApiPropertyOptional({
+    description: 'Exterior (body) color',
+    example: 'Pearl White',
+  })
+  @IsOptional()
+  @IsString()
+  exteriorColor?: string;
+
+  @ApiPropertyOptional({
+    description: 'Interior (upholstery) color',
+    example: 'Beige',
+  })
+  @IsOptional()
+  @IsString()
+  interiorColor?: string;
+
+  @ApiPropertyOptional({ description: 'Number of cylinders', example: 4 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(16)
+  @Type(() => Number)
+  cylinders?: number;
+
+  @ApiPropertyOptional({ description: 'Number of doors', example: 4 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(8)
+  @Type(() => Number)
+  doors?: number;
+
+  @ApiPropertyOptional({
+    description: 'Vehicle Identification Number (VIN)',
+    example: '1HGCM82633A004352',
+  })
+  @IsOptional()
+  @IsString()
+  vin?: string;
+
+  @ApiPropertyOptional({
+    description: 'ID of the car type (body style) — e.g. SUV, Sedan',
     example: 'cuid...',
   })
   @IsOptional()
   @IsString()
-  furnishingId?: string;
+  carTypeId?: string;
 
-  // ── Type-Specific Extra Properties ───────────────────────────────────────
+  // ── Body-Type-Specific Extra Properties ──────────────────────────────────
 
   @ApiPropertyOptional({
     description:
-      'Extra fields specific to the property type (JSON). ' +
-      'Villa: { gardenAreaSqm, privatePool, privateGym, driverRoom, outdoorKitchen, rooftopTerrace, numberOfFloors }. ' +
-      'Apartment: { viewType, buildingName, serviceChargePerSqm, chillersIncluded }. ' +
-      'Townhouse: { gardenAreaSqm, rooftopTerrace, basement, backyard }. ' +
-      'Penthouse: { privateTerraceSqm, privatePool, skyLounge, doubleHeight }. ' +
-      'Studio: { loftStyle, mezzanineLevel, openPlanKitchen }. ' +
-      'Commercial: { officeGrade, numberOfUnits, annualServiceCharge, zoningType, fitOutStatus, floorPlate }. ' +
-      'Land: { plotAreaSqm, roadFrontageMeters, zoningType, buildPermitAvailable, utilityConnected, cornerPlot }.',
-    example: { privatePool: true, gardenAreaSqm: 200 },
+      'Extra fields specific to the car body type (JSON). ' +
+      'SUV: { driveType, seatingCapacity, groundClearanceMm }. ' +
+      'Sedan: { trunkCapacityLiters }. ' +
+      'Pickup Truck: { bedLengthMeters, towingCapacityKg }. ' +
+      'Van: { seatingCapacity, cargoVolumeLiters }. ' +
+      'Convertible: { roofType }. ' +
+      'Electric/Hybrid: { batteryRangeKm, chargeTimeHours }.',
+    example: { driveType: '4WD', seatingCapacity: 7 },
   })
   @IsOptional()
   @IsObject()
@@ -218,8 +235,8 @@ export class CreateListingDto {
   // ── Price ─────────────────────────────────────────────────────────────────
 
   @ApiProperty({
-    description: 'Price in QAR. Optional when `draftId` is provided.',
-    example: 5500000,
+    description: 'Price in SAR. Optional when `draftId` is provided.',
+    example: 85000,
     minimum: 0,
   })
   @ValidateIf((o) => !o.draftId)
@@ -236,45 +253,37 @@ export class CreateListingDto {
   @IsBoolean()
   priceNegotiable?: boolean;
 
-  // ── Qatar Address ─────────────────────────────────────────────────────────
+  // ── Saudi Arabia Address ─────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description: 'Address line 1 (street / building)',
-    example: 'Porto Arabia Tower 5',
+    description: 'Address line 1 (street / landmark)',
+    example: 'King Fahd Road',
   })
   @IsOptional()
   @IsString()
   addressLine1?: string;
 
   @ApiPropertyOptional({
-    description: 'Address line 2 (apartment / unit number)',
-    example: 'Apt 1201',
+    description: 'Address line 2 (building / showroom number)',
+    example: 'Showroom 12',
   })
   @IsOptional()
   @IsString()
   addressLine2?: string;
 
   @ApiPropertyOptional({
-    description: 'Area / district name within Qatar',
-    example: 'The Pearl Qatar',
+    description: 'Area / district name within Saudi Arabia',
+    example: 'Al Olaya, Riyadh',
   })
   @IsOptional()
   @IsString()
   areaName?: string;
 
-  @ApiPropertyOptional({
-    description: 'ID of the Qatar municipality',
-    example: 'cuid...',
-  })
-  @IsOptional()
-  @IsString()
-  municipalityId?: string;
-
   // ── Contact ───────────────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
     description: 'Contact phone number (E.164 format)',
-    example: '+97455512345',
+    example: '+966512345678',
   })
   @IsOptional()
   @IsString()
@@ -282,7 +291,7 @@ export class CreateListingDto {
 
   @ApiPropertyOptional({
     description: 'WhatsApp number for inquiries (E.164 format)',
-    example: '+97455512345',
+    example: '+966512345678',
   })
   @IsOptional()
   @IsString()
@@ -297,34 +306,34 @@ export class CreateListingDto {
   @IsBoolean()
   contactVerified?: boolean;
 
-  // ── Amenities ─────────────────────────────────────────────────────────────
+  // ── Features ─────────────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description: 'List of amenity IDs.',
+    description: 'List of car feature IDs.',
     type: [String],
     example: ['cuid1', 'cuid2'],
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  amenities?: string[];
+  features?: string[];
 
-  // ── Nearby Tags ───────────────────────────────────────────────────────────
+  // ── Tags ─────────────────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description: 'Nearby landmark tag IDs.',
+    description: 'Car tag IDs (e.g. Single Owner, GCC Spec).',
     type: [String],
     example: ['cuid3', 'cuid4'],
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  nearbyTags?: string[];
+  tags?: string[];
 
   @ApiPropertyOptional({
     description:
-      'Free-text notes on any other property features not listed above',
-    example: 'Comes with a dedicated boat berth in the marina',
+      'Free-text notes on any other car features not listed above',
+    example: 'Comes with an extended warranty transferable to the new owner',
   })
   @IsOptional()
   @IsString()
@@ -334,7 +343,7 @@ export class CreateListingDto {
 
   @ApiPropertyOptional({
     description:
-      'Property photos with sort order (max 30). sortOrder=0 is the hero image.',
+      'Car photos with sort order (max 30). sortOrder=0 is the hero image.',
     type: [ListingPhotoDto],
     example: [
       {
@@ -345,7 +354,7 @@ export class CreateListingDto {
       {
         url: 'https://cdn.example.com/photo2.jpg',
         sortOrder: 1,
-        caption: 'Living Room',
+        caption: 'Interior',
       },
     ],
   })

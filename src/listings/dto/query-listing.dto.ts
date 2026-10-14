@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ListingPurpose, ListingStatus } from '@prisma/client';
+import {
+  CarCondition,
+  FuelType,
+  ListingPurpose,
+  ListingStatus,
+  TransmissionType,
+} from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -34,26 +40,6 @@ function transformToArray(value: any): string[] | undefined {
   return [String(value)];
 }
 
-function transformToNumberArray(value: any): number[] | undefined {
-  if (value === undefined || value === null || value === '') return undefined;
-  if (Array.isArray(value)) {
-    const nums = value
-      .flatMap((v) => (typeof v === 'string' ? v.split(',') : v))
-      .map((v) => Number(v))
-      .filter((n) => !isNaN(n));
-    return nums.length > 0 ? nums : undefined;
-  }
-  if (typeof value === 'string') {
-    const nums = value
-      .split(',')
-      .map((v) => Number(v.trim()))
-      .filter((n) => !isNaN(n));
-    return nums.length > 0 ? nums : undefined;
-  }
-  if (typeof value === 'number') return [value];
-  return undefined;
-}
-
 export class QueryListingDto {
   // ── Pagination ─────────────────────────────────────────────────────────────
 
@@ -80,17 +66,17 @@ export class QueryListingDto {
   @Max(100)
   limit?: number = 12;
 
-  // ── Listing Type & Purpose ─────────────────────────────────────────────────
+  // ── Car Model & Purpose ──────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description: 'Filter by property type ID or IDs (comma-separated or array)',
+    description: 'Filter by car model ID or IDs (comma-separated or array)',
     example: 'cuid1,cuid2',
   })
   @IsOptional()
   @Transform(({ value }) => transformToArray(value))
   @IsArray()
   @IsString({ each: true })
-  typeId?: string | string[];
+  modelId?: string | string[];
 
   @ApiPropertyOptional({
     enum: ListingPurpose,
@@ -116,21 +102,21 @@ export class QueryListingDto {
   @IsEnum(ListingStatus, { each: true })
   status?: ListingStatus | ListingStatus[];
 
-  // ── Location ───────────────────────────────────────────────────────────────
+  // ── Brand & Location ─────────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description: 'Filter by municipality ID or IDs (comma-separated or array)',
+    description: 'Filter by car brand ID or IDs (comma-separated or array)',
     example: 'cuid1,cuid2',
   })
   @IsOptional()
   @Transform(({ value }) => transformToArray(value))
   @IsArray()
   @IsString({ each: true })
-  municipalityId?: string | string[];
+  brandId?: string | string[];
 
   @ApiPropertyOptional({
     description: 'Filter by area name or names (comma-separated or array)',
-    example: 'The Pearl,Lusail',
+    example: 'Al Olaya,King Fahd Road',
   })
   @IsOptional()
   @Transform(({ value }) => transformToArray(value))
@@ -140,7 +126,7 @@ export class QueryListingDto {
 
   @ApiPropertyOptional({
     description: 'Latitude for nearby search',
-    example: 25.2854,
+    example: 24.7136,
   })
   @IsOptional()
   @Type(() => Number)
@@ -149,7 +135,7 @@ export class QueryListingDto {
 
   @ApiPropertyOptional({
     description: 'Longitude for nearby search',
-    example: 51.531,
+    example: 46.6753,
   })
   @IsOptional()
   @Type(() => Number)
@@ -168,7 +154,7 @@ export class QueryListingDto {
 
   // ── Price ──────────────────────────────────────────────────────────────────
 
-  @ApiPropertyOptional({ description: 'Minimum price in QAR', example: 500000 })
+  @ApiPropertyOptional({ description: 'Minimum price in SAR', example: 20000 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -176,8 +162,8 @@ export class QueryListingDto {
   minPrice?: number;
 
   @ApiPropertyOptional({
-    description: 'Maximum price in QAR',
-    example: 10000000,
+    description: 'Maximum price in SAR',
+    example: 200000,
   })
   @IsOptional()
   @Type(() => Number)
@@ -194,107 +180,100 @@ export class QueryListingDto {
   @IsBoolean()
   priceNegotiable?: boolean;
 
-  // ── Rooms ──────────────────────────────────────────────────────────────────
+  // ── Model Year ───────────────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description:
-      'Specific bedroom count(s) (comma-separated or array, e.g. 1,2,3)',
-    example: '2,3',
-  })
-  @IsOptional()
-  @Transform(({ value }) => transformToNumberArray(value))
-  @IsArray()
-  @IsInt({ each: true })
-  bedrooms?: number | number[];
-
-  @ApiPropertyOptional({
-    description: 'Minimum number of bedrooms',
-    example: 2,
+    description: 'Minimum model year',
+    example: 2015,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(0)
-  minBedrooms?: number;
+  @Min(1970)
+  minModelYear?: number;
 
   @ApiPropertyOptional({
-    description: 'Maximum number of bedrooms',
-    example: 6,
+    description: 'Maximum model year',
+    example: 2026,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(0)
-  maxBedrooms?: number;
+  @Min(1970)
+  maxModelYear?: number;
 
-  @ApiPropertyOptional({
-    description:
-      'Specific bathroom count(s) (comma-separated or array, e.g. 1,2,3)',
-    example: '2,3',
-  })
-  @IsOptional()
-  @Transform(({ value }) => transformToNumberArray(value))
-  @IsArray()
-  @IsInt({ each: true })
-  bathrooms?: number | number[];
+  // ── Mileage ────────────────────────────────────────────────────────────────
 
-  @ApiPropertyOptional({
-    description: 'Minimum number of bathrooms',
-    example: 2,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  minBathrooms?: number;
-
-  // ── Area ───────────────────────────────────────────────────────────────────
-
-  @ApiPropertyOptional({ description: 'Minimum area in sqm', example: 100 })
+  @ApiPropertyOptional({ description: 'Minimum mileage in km', example: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @IsPositive()
-  minArea?: number;
+  @Min(0)
+  minMileage?: number;
 
-  @ApiPropertyOptional({ description: 'Maximum area in sqm', example: 1000 })
+  @ApiPropertyOptional({
+    description: 'Maximum mileage in km',
+    example: 100000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @IsPositive()
-  maxArea?: number;
+  @Min(0)
+  maxMileage?: number;
 
-  // ── Features ───────────────────────────────────────────────────────────────
+  // ── Car Specs ────────────────────────────────────────────────────────────────
+
+  @ApiPropertyOptional({ enum: FuelType, description: 'Filter by fuel type' })
+  @IsOptional()
+  @IsEnum(FuelType)
+  fuelType?: FuelType;
 
   @ApiPropertyOptional({
-    description:
-      'Filter by furnishing status ID or IDs (comma-separated or array)',
+    enum: TransmissionType,
+    description: 'Filter by transmission type',
+  })
+  @IsOptional()
+  @IsEnum(TransmissionType)
+  transmission?: TransmissionType;
+
+  @ApiPropertyOptional({
+    enum: CarCondition,
+    description: 'Filter by car condition',
+  })
+  @IsOptional()
+  @IsEnum(CarCondition)
+  condition?: CarCondition;
+
+  // ── Car Type, Features & Tags ───────────────────────────────────────────────
+
+  @ApiPropertyOptional({
+    description: 'Filter by car type ID or IDs (comma-separated or array)',
   })
   @IsOptional()
   @Transform(({ value }) => transformToArray(value))
   @IsArray()
   @IsString({ each: true })
-  furnishingId?: string | string[];
+  carTypeId?: string | string[];
 
   @ApiPropertyOptional({
-    description: 'Filter by amenity ID or IDs (comma-separated or array)',
+    description: 'Filter by feature ID or IDs (comma-separated or array)',
     example: 'cuid1,cuid2',
   })
   @IsOptional()
   @Transform(({ value }) => transformToArray(value))
   @IsArray()
   @IsString({ each: true })
-  amenityId?: string | string[];
+  featureId?: string | string[];
 
   @ApiPropertyOptional({
-    description: 'Filter by nearby tag ID or IDs (comma-separated or array)',
+    description: 'Filter by tag ID or IDs (comma-separated or array)',
     example: 'cuid1,cuid2',
   })
   @IsOptional()
   @Transform(({ value }) => transformToArray(value))
   @IsArray()
   @IsString({ each: true })
-  nearbyTagId?: string | string[];
+  tagId?: string | string[];
 
   // ── Spam / Duplicate (admin only) ──────────────────────────────────────────
 
@@ -337,8 +316,8 @@ export class QueryListingDto {
 
   @ApiPropertyOptional({
     description:
-      'Full-text search across property name, description, area name, reference code',
-    example: 'pearl villa pool',
+      'Full-text search across title, description, area name, reference code',
+    example: 'toyota camry sedan',
   })
   @IsOptional()
   @IsString()
@@ -348,11 +327,11 @@ export class QueryListingDto {
 
   @ApiPropertyOptional({
     description: 'Sort field',
-    enum: ['createdAt', 'price', 'area', 'bedrooms'],
+    enum: ['createdAt', 'price', 'mileage', 'modelYear'],
     default: 'createdAt',
   })
   @IsOptional()
-  @IsIn(['createdAt', 'price', 'area', 'bedrooms'])
+  @IsIn(['createdAt', 'price', 'mileage', 'modelYear'])
   sortBy?: string = 'createdAt';
 
   @ApiPropertyOptional({

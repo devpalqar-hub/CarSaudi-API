@@ -33,7 +33,7 @@ export class CreateUserDto {
   @ApiPropertyOptional({
     description:
       'Phone number in E.164 format (required if email is not provided)',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsOptional()
   @Matches(/^\+?[1-9]\d{6,14}$/, {

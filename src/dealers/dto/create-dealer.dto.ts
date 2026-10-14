@@ -21,7 +21,7 @@ export class CreateDealerDto {
 
   @ApiProperty({
     description: 'Business email (used for login)',
-    example: 'ahmed@pearlrealestate.qa',
+    example: 'ahmed@alfaisalmotors.sa',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -51,7 +51,7 @@ export class CreateDealerDto {
 
   @ApiPropertyOptional({
     description: 'Contact phone in E.164 format',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsOptional()
   @Matches(/^\+?[1-9]\d{6,14}$/)
@@ -88,7 +88,7 @@ export class CreateDealerDto {
 
   @ApiPropertyOptional({
     description: 'Website',
-    example: 'https://pearlrealestate.qa',
+    example: 'https://alfaisalmotors.sa',
   })
   @IsOptional()
   @IsUrl()
@@ -102,7 +102,7 @@ export class CreateDealerDto {
 
   @ApiPropertyOptional({
     description: 'Facebook page/profile URL or handle',
-    example: 'https://facebook.com/pearlrealestate',
+    example: 'https://facebook.com/alfaisalmotors',
   })
   @IsOptional()
   @IsString()
@@ -110,7 +110,7 @@ export class CreateDealerDto {
 
   @ApiPropertyOptional({
     description: 'YouTube channel URL or handle',
-    example: 'https://youtube.com/@pearlrealestate',
+    example: 'https://youtube.com/@alfaisalmotors',
   })
   @IsOptional()
   @IsString()
@@ -118,7 +118,7 @@ export class CreateDealerDto {
 
   @ApiPropertyOptional({
     description: 'WhatsApp contact number or link',
-    example: '+97412345678',
+    example: '+96612345678',
   })
   @IsOptional()
   @IsString()
@@ -126,7 +126,7 @@ export class CreateDealerDto {
 
   @ApiPropertyOptional({
     description: 'Instagram handle or profile URL',
-    example: 'https://instagram.com/pearlrealestate',
+    example: 'https://instagram.com/alfaisalmotors',
   })
   @IsOptional()
   @IsString()

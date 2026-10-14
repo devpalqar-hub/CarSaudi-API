@@ -76,7 +76,7 @@ export class InvoicesController {
     summary:
       'Download the invoice for a listing / featured boost / dealer subscription',
     description:
-      'Same Qatar-formatted PDF as `GET /invoices/:id/download`, but looked up by the id of ' +
+      'Same Saudi Arabia-formatted PDF as `GET /invoices/:id/download`, but looked up by the id of ' +
       'the listing / featured boost / dealer subscription it documents — e.g. ' +
       "`GET /invoices/by-reference/{listingId}/download` to download a listing's invoice " +
       'directly.',
@@ -117,7 +117,7 @@ export class InvoicesController {
 
   @Get(':id/download')
   @ApiOperation({
-    summary: 'Download the invoice as a Qatar-formatted PDF',
+    summary: 'Download the invoice as a Saudi Arabia-formatted PDF',
     description:
       'Streams the generated invoice/receipt PDF — same document emailed at the time the ' +
       'listing payment / featured boost / dealer subscription was completed.',

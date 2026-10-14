@@ -48,7 +48,7 @@ export class DealersController {
     summary: 'Dealer: Get own profile',
     description:
       "Full profile for the dealer's own page: `coverImage` and `logoImage`, contact info, " +
-      '`links` (website/facebook/youtube/whatsapp/instagram), `stats` (sold + active property ' +
+      '`links` (website/facebook/youtube/whatsapp/instagram), `stats` (sold + active listing ' +
       'counts across the whole agency incl. staff, staff count), `quota` (remaining free listings ' +
       '/ featured slots), and `plan` (current subscription — name, discounts, expiry date, days ' +
       "remaining). Dealer staff get their agency's profile.",
@@ -102,7 +102,7 @@ export class DealersController {
     summary: 'Dealer Web Analytics',
     description:
       'Returns aggregate analytics for a dealer web application (agency overview totals, ' +
-      'views, impressions, reach count, staff members count, property inquiries/visits count, ' +
+      'views, impressions, reach count, staff members count, listing inquiries/visits count, ' +
       'and paginated listing performance breakdown). Can filter by date range, search, status, and purpose.',
   })
   @ApiResponse({ status: 200, description: 'Dealer web analytics data' })
@@ -131,11 +131,11 @@ export class DealersController {
       'Single all-in-one analytics dashboard for a dealer agency (dealer + all dealer staff). Returns: ' +
       'listing status counts including number of open/live listings, views/impressions/reach, ' +
       'in-app chat counts (conversations + distinct users who started a chat), WhatsApp chat-initiation ' +
-      'click counts, scheduled property visits by status, remaining free listing/featured quota, active ' +
-      'subscription plan expiry date and days remaining, total property sales (count + value), a ' +
+      'click counts, scheduled visits by status, remaining free listing/featured quota, active ' +
+      'subscription plan expiry date and days remaining, total car sales (count + value), a ' +
       'visits-vs-views-vs-chats trend graph bucketed by day/week/month/year, and the top 5 performing ' +
-      'listings. All filters are optional: date range, graph granularity, single property, staff member, ' +
-      'property type, purpose (sale/rent), status, and location (municipality / area name).',
+      'listings. All filters are optional: date range, graph granularity, single listing, staff member, ' +
+      'model, purpose (sale/rent), status, and location (brand / area name).',
   })
   @ApiResponse({
     status: 200,
@@ -148,7 +148,7 @@ export class DealersController {
   })
   @ApiResponse({
     status: 404,
-    description: 'Staff member or property not found in this agency',
+    description: 'Staff member or listing not found in this agency',
   })
   getDealerDashboard(
     @CurrentUser('id') userId: string,
@@ -207,7 +207,7 @@ export class DealersController {
   @ApiOperation({
     summary: 'Get dealer details and listings',
     description:
-      'Returns dealer profile, active subscription status, and all property listings. Includes ' +
+      'Returns dealer profile, active subscription status, and all car listings. Includes ' +
       '`activePropertiesCount` — the number of currently ACTIVE (unsold) listings across the dealer ' +
       'and their staff.',
   })
@@ -229,10 +229,10 @@ export class DealersController {
     summary: "[Admin] Get a specific dealer's full analytics dashboard",
     description:
       'Same data a dealer sees about themselves via GET /dealers/analytics/dashboard — open ' +
-      'properties, reach/views, in-app chats, WhatsApp chat-initiation clicks, a visits-vs-views-vs-' +
+      'listings, reach/views, in-app chats, WhatsApp chat-initiation clicks, a visits-vs-views-vs-' +
       'chats trend graph, remaining free listing/featured quota, subscription plan expiry, and total ' +
-      "property sales — scoped to whichever dealer's `id` you pass. Supports the same optional " +
-      'filters: date range, graph granularity, single property, staff member, property type, purpose, ' +
+      "car sales — scoped to whichever dealer's `id` you pass. Supports the same optional " +
+      'filters: date range, graph granularity, single listing, staff member, model, purpose, ' +
       'status, and location. Requires SUPER_ADMIN role or MODERATOR with `VIEW_ANALYTICS` permission.',
   })
   @ApiParam({ name: 'id', description: 'User CUID of the dealer' })

@@ -86,10 +86,10 @@ export class FeaturedService {
   ) {
     try {
       const [listing, plan] = await Promise.all([
-        this.prisma.listing.findUnique({
+        this.prisma.carListing.findUnique({
           where: { id: listingId },
           select: {
-            propertyName: true,
+            title: true,
             createdBy: { select: { name: true, email: true } },
           },
         }),
@@ -101,7 +101,7 @@ export class FeaturedService {
         this.mail.sendFeaturedActivationEmail(
           listing.createdBy.email,
           listing.createdBy.name ?? 'there',
-          listing.propertyName,
+          listing.title,
           plan.name,
           plan.locations,
           plan.durationDays,
@@ -117,7 +117,7 @@ export class FeaturedService {
             type: InvoiceType.FEATURED_LISTING,
             referenceId: subIds[0],
             billedToId: userId,
-            description: `Featured Listing — ${listing?.propertyName ?? listingId}`,
+            description: `Featured Listing — ${listing?.title ?? listingId}`,
             lineItems: [
               {
                 description: `${plan.name} (${plan.durationDays} days, ${subIds.length} location${subIds.length > 1 ? 's' : ''})`,
@@ -277,9 +277,9 @@ export class FeaturedService {
       );
 
     // Verify the listing belongs to the requesting user
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: dto.listingId },
-      select: { id: true, propertyName: true, createdById: true, status: true },
+      select: { id: true, title: true, createdById: true, status: true },
     });
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.createdById !== userId) {
@@ -387,7 +387,7 @@ export class FeaturedService {
     const primarySubId = subs[0].id;
     const subscriptionIds = subs.map((s) => s.id).join(',');
     const amount = Math.round(finalPrice * 100);
-    const description = `Feature "${listing.propertyName}" for ${plan.durationDays} days at ${plan.locations.join(', ')}${discountPercent > 0 ? ` (${discountPercent}% dealer discount applied)` : ''}`;
+    const description = `Feature "${listing.title}" for ${plan.durationDays} days at ${plan.locations.join(', ')}${discountPercent > 0 ? ` (${discountPercent}% dealer discount applied)` : ''}`;
 
     // A Checkout Session's own PaymentIntent isn't reliably attached until the customer
     // reaches the payment step — expanding it right after `.create()` frequently comes back
@@ -484,9 +484,9 @@ export class FeaturedService {
   async adminAddFeatured(dto: AdminAddFeaturedDto, adminId: string) {
     const plan = await this.getPlanOrThrow(dto.planId);
 
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: dto.listingId },
-      select: { id: true, status: true, propertyName: true, createdById: true },
+      select: { id: true, status: true, title: true, createdById: true },
     });
     if (!listing) throw new NotFoundException('Listing not found');
 
@@ -517,7 +517,7 @@ export class FeaturedService {
             createdById: adminId,
           },
           include: {
-            listing: { select: { id: true, propertyName: true, slug: true } },
+            listing: { select: { id: true, title: true, slug: true } },
             plan: true,
           },
         }),
@@ -530,7 +530,7 @@ export class FeaturedService {
         type: InvoiceType.FEATURED_LISTING,
         referenceId: subs[0].id,
         billedToId: listing.createdById,
-        description: `Featured Listing — ${listing.propertyName} (added by admin)`,
+        description: `Featured Listing — ${listing.title} (added by admin)`,
         lineItems: [
           {
             description: `${plan.name} (${plan.durationDays} days, ${subs.length} location${subs.length > 1 ? 's' : ''})`,
@@ -579,7 +579,7 @@ export class FeaturedService {
         status: ListingStatus.ACTIVE,
         ...(search && {
           OR: [
-            { propertyName: { contains: search, mode: 'insensitive' } },
+            { title: { contains: search, mode: 'insensitive' } },
             { description: { contains: search, mode: 'insensitive' } },
             { areaName: { contains: search, mode: 'insensitive' } },
           ],
@@ -645,7 +645,7 @@ export class FeaturedService {
       include: {
         plan: true,
         listing: {
-          select: { id: true, propertyName: true, slug: true, status: true },
+          select: { id: true, title: true, slug: true, status: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -674,7 +674,7 @@ export class FeaturedService {
     if (search) {
       where.listing = {
         OR: [
-          { propertyName: { contains: search, mode: 'insensitive' } },
+          { title: { contains: search, mode: 'insensitive' } },
           { areaName: { contains: search, mode: 'insensitive' } },
         ],
       };
@@ -689,7 +689,7 @@ export class FeaturedService {
         include: {
           plan: true,
           listing: {
-            select: { id: true, propertyName: true, slug: true, status: true },
+            select: { id: true, title: true, slug: true, status: true },
           },
           createdBy: {
             select: { id: true, name: true, email: true, role: true },
@@ -764,9 +764,9 @@ export class FeaturedService {
         'This featured plan is no longer available.',
       );
 
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: dto.listingId },
-      select: { id: true, propertyName: true, createdById: true, status: true },
+      select: { id: true, title: true, createdById: true, status: true },
     });
     if (!listing) throw new NotFoundException('Listing not found');
     if (listing.status !== ListingStatus.ACTIVE) {
@@ -887,7 +887,7 @@ export class FeaturedService {
               createdById: userId,
             },
             include: {
-              listing: { select: { id: true, propertyName: true, slug: true } },
+              listing: { select: { id: true, title: true, slug: true } },
               plan: true,
             },
           }),

@@ -25,7 +25,7 @@ export class CreateDealerStaffDto {
 
   @ApiProperty({
     description: 'Staff login email',
-    example: 'sara@pearlrealestate.qa',
+    example: 'sara@alfaisalmotors.sa',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -47,11 +47,11 @@ export class CreateDealerStaffDto {
 
   @ApiPropertyOptional({
     description: 'Contact phone in E.164 format',
-    example: '+97412345679',
+    example: '+96612345679',
   })
   @IsOptional()
   @Matches(/^\+?[1-9]\d{6,14}$/, {
-    message: 'Phone must be in E.164 format, e.g. +97412345678',
+    message: 'Phone must be in E.164 format, e.g. +96612345678',
   })
   phone?: string;
 
@@ -73,7 +73,7 @@ export class CreateDealerStaffDto {
     isArray: true,
     description: 'List of permissions granted to this staff member',
     example: [
-      DealerStaffPermission.PROPERTY_LISTINGS_VIEW,
+      DealerStaffPermission.CAR_LISTINGS_VIEW,
       DealerStaffPermission.CHATS_MANAGE,
     ],
   })

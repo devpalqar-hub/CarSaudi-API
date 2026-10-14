@@ -82,47 +82,47 @@ export const LISTING_SELECT = {
   id: true,
   referenceCode: true,
   slug: true,
-  propertyName: true,
+  title: true,
   description: true,
   purpose: true,
-  typeId: true,
-  type: { select: { id: true, title: true } },
+  modelId: true,
+  model: { select: { id: true, title: true, image: true } },
   latitude: true,
   longitude: true,
   isPotentialDuplicate: true,
   duplicateOfId: true,
-  bedrooms: true,
-  bathrooms: true,
-  area: true,
-  livingRooms: true,
-  parkingSpaces: true,
-  floorNumber: true,
-  totalFloors: true,
-  yearBuilt: true,
-  furnishingId: true,
-  furnishing: true,
+  modelYear: true,
+  mileage: true,
+  transmission: true,
+  fuelType: true,
+  condition: true,
+  exteriorColor: true,
+  interiorColor: true,
+  cylinders: true,
+  doors: true,
+  vin: true,
+  carTypeId: true,
+  carType: true,
   extraProperties: true,
   price: true,
   priceNegotiable: true,
   addressLine1: true,
   addressLine2: true,
   areaName: true,
-  municipalityId: true,
-  municipality: {
+  brandId: true,
+  brand: {
     select: {
       id: true,
       name: true,
       image: true,
-      latitude: true,
-      longitude: true,
     },
   },
   country: true,
   contactPhone: true,
   contactWhatsapp: true,
   contactVerified: true,
-  amenities: true,
-  nearbyTags: true,
+  features: true,
+  tags: true,
   otherFeatures: true,
   status: true,
   submissionCount: true,
@@ -156,7 +156,7 @@ export const LISTING_SELECT = {
     },
     orderBy: { sortOrder: 'asc' as const },
   },
-} satisfies Prisma.ListingSelect;
+} satisfies Prisma.CarListingSelect;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // isFeatured subquery — checks for any active featured subscription
@@ -209,14 +209,14 @@ export class ListingsService implements OnModuleInit {
 
   private async backfillReferenceCodes() {
     try {
-      const unassignedListings = await this.prisma.listing.findMany({
+      const unassignedListings = await this.prisma.carListing.findMany({
         where: { referenceCode: null },
         select: { id: true, createdById: true },
       });
 
       for (const listing of unassignedListings) {
         const code = await this.generateReferenceCode(listing.createdById);
-        await this.prisma.listing.update({
+        await this.prisma.carListing.update({
           where: { id: listing.id },
           data: { referenceCode: code },
         });
@@ -242,7 +242,7 @@ export class ListingsService implements OnModuleInit {
       }
       const code = `${prefix}${randomPart}`;
 
-      const existing = await this.prisma.listing.findFirst({
+      const existing = await this.prisma.carListing.findFirst({
         where: { referenceCode: code },
       });
 
@@ -259,23 +259,23 @@ export class ListingsService implements OnModuleInit {
   }
 
   /**
-   * Spam check: within 50 metres radius, same property name (case-insensitive).
+   * Spam check: within 50 metres radius, same title (case-insensitive).
    * Returns the found duplicate listing id, or null.
    */
   private async findNearbyDuplicate(
-    propertyName: string,
+    title: string,
     latitude: number,
     longitude: number,
     excludeId?: string,
   ): Promise<string | null> {
     // Pull candidates within a ~0.001° bbox (~110m) — cheap pre-filter
     const delta = 0.001;
-    const candidates = await this.prisma.listing.findMany({
+    const candidates = await this.prisma.carListing.findMany({
       where: {
         ...(excludeId ? { NOT: { id: excludeId } } : {}),
         latitude: { gte: latitude - delta, lte: latitude + delta },
         longitude: { gte: longitude - delta, lte: longitude + delta },
-        propertyName: { equals: propertyName, mode: 'insensitive' },
+        title: { equals: title, mode: 'insensitive' },
       },
       select: { id: true, latitude: true, longitude: true },
     });
@@ -304,9 +304,9 @@ export class ListingsService implements OnModuleInit {
       sortOrder: number;
     }[],
   ) {
-    await tx.listingPhoto.deleteMany({ where: { listingId } });
+    await tx.carListingPhoto.deleteMany({ where: { listingId } });
     if (photos.length > 0) {
-      await tx.listingPhoto.createMany({
+      await tx.carListingPhoto.createMany({
         data: photos.map((p) => ({ listingId, ...p })),
       });
     }
@@ -330,7 +330,7 @@ export class ListingsService implements OnModuleInit {
 
     if (effectiveDto.latitude != null && effectiveDto.longitude != null) {
       duplicateOfId = await this.findNearbyDuplicate(
-        effectiveDto.propertyName,
+        effectiveDto.title,
         effectiveDto.latitude,
         effectiveDto.longitude,
       );
@@ -339,8 +339,8 @@ export class ListingsService implements OnModuleInit {
 
     const { photos, draftId, ...rest } = effectiveDto;
 
-    // Generate a basic slug from the property name
-    const baseSlug = rest.propertyName
+    // Generate a basic slug from the listing title
+    const baseSlug = rest.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
@@ -373,27 +373,29 @@ export class ListingsService implements OnModuleInit {
     // that might get rejected.
     const listing = await this.prisma
       .$transaction(async (tx) => {
-        const created = await tx.listing.create({
+        const created = await tx.carListing.create({
           data: {
-            propertyName: rest.propertyName,
+            title: rest.title,
             referenceCode,
             slug,
             description: rest.description ?? null,
             purpose: rest.purpose,
-            typeId: rest.typeId,
+            modelId: rest.modelId,
             latitude: rest.latitude ?? null,
             longitude: rest.longitude ?? null,
             isPotentialDuplicate,
             duplicateOfId,
-            bedrooms: rest.bedrooms ?? null,
-            bathrooms: rest.bathrooms ?? null,
-            area: rest.area ?? null,
-            livingRooms: rest.livingRooms ?? null,
-            parkingSpaces: rest.parkingSpaces ?? null,
-            floorNumber: rest.floorNumber ?? null,
-            totalFloors: rest.totalFloors ?? null,
-            yearBuilt: rest.yearBuilt ?? null,
-            furnishingId: parseRelationId(rest.furnishingId),
+            modelYear: rest.modelYear ?? null,
+            mileage: rest.mileage ?? null,
+            transmission: rest.transmission ?? null,
+            fuelType: rest.fuelType ?? null,
+            condition: rest.condition ?? undefined,
+            exteriorColor: rest.exteriorColor ?? null,
+            interiorColor: rest.interiorColor ?? null,
+            cylinders: rest.cylinders ?? null,
+            doors: rest.doors ?? null,
+            vin: rest.vin ?? null,
+            carTypeId: parseRelationId(rest.carTypeId),
             extraProperties:
               (rest.extraProperties as Prisma.InputJsonValue) ??
               Prisma.JsonNull,
@@ -402,15 +404,15 @@ export class ListingsService implements OnModuleInit {
             addressLine1: rest.addressLine1 ?? null,
             addressLine2: rest.addressLine2 ?? null,
             areaName: rest.areaName ?? null,
-            municipalityId: parseRelationId(rest.municipalityId),
+            brandId: rest.brandId,
             contactPhone: rest.contactPhone ?? null,
             contactWhatsapp: rest.contactWhatsapp ?? null,
             contactVerified,
-            amenities: {
-              connect: (rest.amenities ?? []).map((id) => ({ id })),
+            features: {
+              connect: (rest.features ?? []).map((id) => ({ id })),
             },
-            nearbyTags: {
-              connect: (rest.nearbyTags ?? []).map((id) => ({ id })),
+            tags: {
+              connect: (rest.tags ?? []).map((id) => ({ id })),
             },
             otherFeatures: rest.otherFeatures ?? null,
             createdById: userId,
@@ -420,7 +422,7 @@ export class ListingsService implements OnModuleInit {
 
         // Save photos
         if (photos && photos.length > 0) {
-          await tx.listingPhoto.createMany({
+          await tx.carListingPhoto.createMany({
             data: photos.map((p) => ({
               listingId: created.id,
               url: p.url,
@@ -431,7 +433,7 @@ export class ListingsService implements OnModuleInit {
           });
         }
 
-        await tx.listingReview.create({
+        await tx.carListingReview.create({
           data: {
             listingId: created.id,
             action: ListingReviewAction.SUBMITTED,
@@ -460,7 +462,7 @@ export class ListingsService implements OnModuleInit {
    * When `dto.draftId` is set, loads that ListingDraft's parsed data as the base and overlays
    * any fields explicitly present in `dto` on top of it (request wins). Otherwise returns `dto`
    * unchanged. Also enforces the four fields that are conditionally-optional on the DTO
-   * (`propertyName`/`purpose`/`typeId`/`price`) are present once merged.
+   * (`title`/`purpose`/`modelId`/`price`) are present once merged.
    */
   private async resolveEffectiveCreateDto(
     dto: CreateListingDto,
@@ -486,7 +488,7 @@ export class ListingsService implements OnModuleInit {
     } as CreateListingDto;
 
     const missing = (
-      ['propertyName', 'purpose', 'typeId', 'price'] as const
+      ['title', 'purpose', 'modelId', 'price'] as const
     ).filter((k) => !merged[k]);
     if (missing.length > 0) {
       throw new BadRequestException(
@@ -515,7 +517,7 @@ export class ListingsService implements OnModuleInit {
     successUrl?: string,
     failedUrl?: string,
   ) {
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id: listingId },
     });
     if (!listing) throw new NotFoundException('Listing not found');
@@ -592,7 +594,7 @@ export class ListingsService implements OnModuleInit {
       amount,
       currency: 'qar',
       automatic_payment_methods: { enabled: true },
-      description: `Listing Submission: ${listing.propertyName}`,
+      description: `Listing Submission: ${listing.title}`,
       metadata: { listingId, type: 'LISTING_PAYMENT' },
     });
 
@@ -605,7 +607,7 @@ export class ListingsService implements OnModuleInit {
             currency: 'qar',
             unit_amount: amount,
             product_data: {
-              name: `Listing Submission: ${listing.propertyName}`,
+              name: `Listing Submission: ${listing.title}`,
               description: 'Pay-per-listing charge',
             },
           },
@@ -632,7 +634,7 @@ export class ListingsService implements OnModuleInit {
       },
     });
 
-    await this.prisma.listing.update({
+    await this.prisma.carListing.update({
       where: { id: listingId },
       data: {
         stripeSessionId: session.id,
@@ -698,7 +700,7 @@ export class ListingsService implements OnModuleInit {
   ) {
     const updated = await this.prisma.$transaction(async (tx) => {
       await consumeQuota(tx);
-      const result = await tx.listing.update({
+      const result = await tx.carListing.update({
         where: { id: listingId },
         data: {
           status: ListingStatus.ACTIVE,
@@ -706,7 +708,7 @@ export class ListingsService implements OnModuleInit {
         },
         select: LISTING_SELECT,
       });
-      await tx.listingReview.create({
+      await tx.carListingReview.create({
         data: {
           listingId,
           action: ListingReviewAction.APPROVED,
@@ -720,7 +722,7 @@ export class ListingsService implements OnModuleInit {
     this.notifications
       .sendToUser(creatorId, {
         title: 'Listing is now live 🎉',
-        body: `"${updated.propertyName}" is now live on VillasQatar — no payment was needed.`,
+        body: `"${updated.title}" is now live on CarSaudi — no payment was needed.`,
         data: { type: 'LISTING_APPROVED', listingId },
       })
       .catch(() => {});
@@ -730,7 +732,7 @@ export class ListingsService implements OnModuleInit {
         type: InvoiceType.LISTING_PAYMENT,
         referenceId: listingId,
         billedToId: creatorId,
-        description: `Listing Publication — ${updated.propertyName}`,
+        description: `Listing Publication — ${updated.title}`,
         lineItems: [
           {
             description:
@@ -840,7 +842,7 @@ export class ListingsService implements OnModuleInit {
    * No pagination — callers (sitemap builders, crawlers) need the full set.
    */
   async getSitemapEntries() {
-    const listings = await this.prisma.listing.findMany({
+    const listings = await this.prisma.carListing.findMany({
       where: {
         slug: { not: null },
         status: { in: [ListingStatus.ACTIVE, ListingStatus.SOLD] },
@@ -916,7 +918,7 @@ export class ListingsService implements OnModuleInit {
     const staffIds = staffMembers.map((s) => s.staffUserId);
     const allCreatorIds = [dealerUserId, ...staffIds];
 
-    const where: Prisma.ListingWhereInput = {
+    const where: Prisma.CarListingWhereInput = {
       ...(await this.buildWhereClause(query, false)),
       createdById: { in: allCreatorIds },
     };
@@ -935,7 +937,7 @@ export class ListingsService implements OnModuleInit {
     analyticsQuery?: ListingAnalyticsQueryDto,
   ) {
     const now = new Date();
-    const listing = await this.prisma.listing.findFirst({
+    const listing = await this.prisma.carListing.findFirst({
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       select: {
         ...LISTING_SELECT,
@@ -1072,9 +1074,9 @@ export class ListingsService implements OnModuleInit {
   // ─── Per-Listing Owner Analytics ────────────────────────────────────────────
 
   /**
-   * Dedicated per-property analytics endpoint — same data as the `analytics` block attached
+   * Dedicated per-listing analytics endpoint — same data as the `analytics` block attached
    * to GET /listings/:id, but standalone (no need to fetch the full listing payload).
-   * Accessible to: admin/moderator (any property), the property's owner, dealer staff of the
+   * Accessible to: admin/moderator (any listing), the listing's owner, dealer staff of the
    * owning dealer, or the dealer whose staff created it.
    */
   async getListingAnalytics(
@@ -1083,11 +1085,11 @@ export class ListingsService implements OnModuleInit {
     requestingUserId: string | undefined,
     analyticsQuery?: ListingAnalyticsQueryDto,
   ) {
-    const listing = await this.prisma.listing.findFirst({
+    const listing = await this.prisma.carListing.findFirst({
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       select: {
         id: true,
-        propertyName: true,
+        title: true,
         slug: true,
         status: true,
         createdBy: {
@@ -1142,7 +1144,7 @@ export class ListingsService implements OnModuleInit {
 
     if (!isAdmin && !isOwner && !isStaffOfOwner && !isDealerOfStaffOwner) {
       throw new ForbiddenException(
-        "You do not have access to this property's analytics",
+        "You do not have access to this listing's analytics",
       );
     }
 
@@ -1153,7 +1155,7 @@ export class ListingsService implements OnModuleInit {
 
     return {
       listingId: listing.id,
-      propertyName: listing.propertyName,
+      title: listing.title,
       slug: listing.slug,
       status: listing.status,
       owner: listing.createdBy,
@@ -1202,7 +1204,7 @@ export class ListingsService implements OnModuleInit {
       periodWishlistUsers,
       viewLogs,
     ] = await Promise.all([
-      this.prisma.listing.findUnique({
+      this.prisma.carListing.findUnique({
         where: { id: listingId },
         select: {
           viewsCount: true,
@@ -1211,17 +1213,17 @@ export class ListingsService implements OnModuleInit {
           whatsappClicksCount: true,
         },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: {
           listingId,
           type: TrackingLogType.VIEW,
           createdAt: periodFilter,
         },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: { listingId, type: TrackingLogType.VIEW, createdAt: prevFilter },
       }),
-      this.prisma.listingTrackingLog.groupBy({
+      this.prisma.carListingTrackingLog.groupBy({
         by: ['deviceId'],
         where: {
           listingId,
@@ -1229,7 +1231,7 @@ export class ListingsService implements OnModuleInit {
           createdAt: periodFilter,
         },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: {
           listingId,
           type: TrackingLogType.WHATSAPP_CLICK,
@@ -1240,8 +1242,8 @@ export class ListingsService implements OnModuleInit {
       this.prisma.chatConversation.count({
         where: { listingId, createdAt: periodFilter },
       }),
-      this.prisma.propertyVisit.count({ where: { listingId } }),
-      this.prisma.propertyVisit.count({
+      this.prisma.carVisit.count({ where: { listingId } }),
+      this.prisma.carVisit.count({
         where: { listingId, createdAt: periodFilter },
       }),
       this.prisma.chatConversation.findMany({
@@ -1249,7 +1251,7 @@ export class ListingsService implements OnModuleInit {
         select: { userId: true },
         distinct: ['userId'],
       }),
-      this.prisma.propertyVisit.findMany({
+      this.prisma.carVisit.findMany({
         where: { listingId },
         select: { visitorId: true },
         distinct: ['visitorId'],
@@ -1264,7 +1266,7 @@ export class ListingsService implements OnModuleInit {
         select: { userId: true },
         distinct: ['userId'],
       }),
-      this.prisma.propertyVisit.findMany({
+      this.prisma.carVisit.findMany({
         where: { listingId, createdAt: periodFilter },
         select: { visitorId: true },
         distinct: ['visitorId'],
@@ -1274,7 +1276,7 @@ export class ListingsService implements OnModuleInit {
         select: { userId: true },
         distinct: ['userId'],
       }),
-      this.prisma.listingTrackingLog.findMany({
+      this.prisma.carListingTrackingLog.findMany({
         where: {
           listingId,
           type: TrackingLogType.VIEW,
@@ -1322,7 +1324,7 @@ export class ListingsService implements OnModuleInit {
         whatsappClicks: totals?.whatsappClicksCount ?? 0,
         messagesStarted: totalConversations,
         usersEngaged: usersEngagedTotal,
-        propertyVisitRequests: totalVisitRequests,
+        visitRequests: totalVisitRequests,
       },
       period: {
         views: periodViews,
@@ -1330,7 +1332,7 @@ export class ListingsService implements OnModuleInit {
         whatsappClicks: periodWhatsappClicks,
         messagesStarted: periodConversations,
         usersEngaged: usersEngagedPeriod,
-        propertyVisitRequests: periodVisitRequests,
+        visitRequests: periodVisitRequests,
         previousPeriodViews: prevViews,
         viewsGrowthPercent: computeGrowthPercent(periodViews, prevViews),
       },
@@ -1346,7 +1348,7 @@ export class ListingsService implements OnModuleInit {
    * so dealers can see how many chats their listings generate via WhatsApp.
    */
   async trackWhatsappClick(idOrSlug: string, deviceId: string) {
-    const listing = await this.prisma.listing.findFirst({
+    const listing = await this.prisma.carListing.findFirst({
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       select: { id: true },
     });
@@ -1369,14 +1371,14 @@ export class ListingsService implements OnModuleInit {
   // ─── Rejection History (admin/moderator) ───────────────────────────────────
 
   async getReviewHistory(id: string) {
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await this.prisma.carListing.findUnique({
       where: { id },
-      select: { id: true, propertyName: true },
+      select: { id: true, title: true },
     });
     if (!listing)
       throw new NotFoundException(`Listing with ID "${id}" not found`);
 
-    const history = await this.prisma.listingReview.findMany({
+    const history = await this.prisma.carListingReview.findMany({
       where: { listingId: id },
       select: {
         id: true,
@@ -1389,7 +1391,7 @@ export class ListingsService implements OnModuleInit {
       orderBy: { reviewedAt: 'desc' },
     });
 
-    return { listingId: id, propertyName: listing.propertyName, history };
+    return { listingId: id, title: listing.title, history };
   }
 
   // ─── Update (Owner / Admin) ────────────────────────────────────────────────
@@ -1400,7 +1402,7 @@ export class ListingsService implements OnModuleInit {
     userId: string,
     userRole: UserRole,
   ) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const listing = await this.prisma.carListing.findUnique({ where: { id } });
     if (!listing)
       throw new NotFoundException(`Listing with ID "${id}" not found`);
 
@@ -1444,7 +1446,7 @@ export class ListingsService implements OnModuleInit {
     let duplicateOfId = listing.duplicateOfId;
     const newLat = dto.latitude ?? listing.latitude;
     const newLon = dto.longitude ?? listing.longitude;
-    const newName = dto.propertyName ?? listing.propertyName;
+    const newName = dto.title ?? listing.title;
 
     if (newLat != null && newLon != null) {
       const foundDup = await this.findNearbyDuplicate(
@@ -1461,39 +1463,39 @@ export class ListingsService implements OnModuleInit {
 
     const updated = await this.prisma
       .$transaction(async (tx) => {
-        const result = await tx.listing.update({
+        const result = await tx.carListing.update({
           where: { id },
           data: {
-            ...(rest.propertyName !== undefined && {
-              propertyName: rest.propertyName,
+            ...(rest.title !== undefined && {
+              title: rest.title,
             }),
             ...(rest.description !== undefined && {
               description: rest.description,
             }),
             ...(rest.purpose !== undefined && { purpose: rest.purpose }),
-            ...(rest.typeId !== undefined && { typeId: rest.typeId }),
+            ...(rest.modelId !== undefined && { modelId: rest.modelId }),
             ...(rest.latitude !== undefined && { latitude: rest.latitude }),
             ...(rest.longitude !== undefined && { longitude: rest.longitude }),
             isPotentialDuplicate,
             duplicateOfId,
-            ...(rest.bedrooms !== undefined && { bedrooms: rest.bedrooms }),
-            ...(rest.bathrooms !== undefined && { bathrooms: rest.bathrooms }),
-            ...(rest.area !== undefined && { area: rest.area }),
-            ...(rest.livingRooms !== undefined && {
-              livingRooms: rest.livingRooms,
+            ...(rest.modelYear !== undefined && { modelYear: rest.modelYear }),
+            ...(rest.mileage !== undefined && { mileage: rest.mileage }),
+            ...(rest.transmission !== undefined && {
+              transmission: rest.transmission,
             }),
-            ...(rest.parkingSpaces !== undefined && {
-              parkingSpaces: rest.parkingSpaces,
+            ...(rest.fuelType !== undefined && { fuelType: rest.fuelType }),
+            ...(rest.condition !== undefined && { condition: rest.condition }),
+            ...(rest.exteriorColor !== undefined && {
+              exteriorColor: rest.exteriorColor,
             }),
-            ...(rest.floorNumber !== undefined && {
-              floorNumber: rest.floorNumber,
+            ...(rest.interiorColor !== undefined && {
+              interiorColor: rest.interiorColor,
             }),
-            ...(rest.totalFloors !== undefined && {
-              totalFloors: rest.totalFloors,
-            }),
-            ...(rest.yearBuilt !== undefined && { yearBuilt: rest.yearBuilt }),
-            ...(rest.furnishingId !== undefined && {
-              furnishingId: parseRelationId(rest.furnishingId),
+            ...(rest.cylinders !== undefined && { cylinders: rest.cylinders }),
+            ...(rest.doors !== undefined && { doors: rest.doors }),
+            ...(rest.vin !== undefined && { vin: rest.vin }),
+            ...(rest.carTypeId !== undefined && {
+              carTypeId: parseRelationId(rest.carTypeId),
             }),
             ...(rest.extraProperties !== undefined && {
               extraProperties: rest.extraProperties as Prisma.InputJsonValue,
@@ -1509,8 +1511,8 @@ export class ListingsService implements OnModuleInit {
               addressLine2: rest.addressLine2,
             }),
             ...(rest.areaName !== undefined && { areaName: rest.areaName }),
-            ...(rest.municipalityId !== undefined && {
-              municipalityId: parseRelationId(rest.municipalityId),
+            ...(rest.brandId !== undefined && {
+              brandId: rest.brandId,
             }),
             ...(rest.contactPhone !== undefined && {
               contactPhone: rest.contactPhone,
@@ -1522,11 +1524,11 @@ export class ListingsService implements OnModuleInit {
               rest.contactVerified !== undefined && {
                 contactVerified: rest.contactVerified,
               }),
-            ...(rest.amenities !== undefined && {
-              amenities: { set: rest.amenities.map((id) => ({ id })) },
+            ...(rest.features !== undefined && {
+              features: { set: rest.features.map((id) => ({ id })) },
             }),
-            ...(rest.nearbyTags !== undefined && {
-              nearbyTags: { set: rest.nearbyTags.map((id) => ({ id })) },
+            ...(rest.tags !== undefined && {
+              tags: { set: rest.tags.map((id) => ({ id })) },
             }),
             ...(rest.otherFeatures !== undefined && {
               otherFeatures: rest.otherFeatures,
@@ -1545,7 +1547,7 @@ export class ListingsService implements OnModuleInit {
         }
 
         // Log audit event
-        await tx.listingReview.create({
+        await tx.carListingReview.create({
           data: {
             listingId: id,
             action: shouldResubmit
@@ -1567,7 +1569,7 @@ export class ListingsService implements OnModuleInit {
       .catch((error: any) => {
         if (error && error.code === 'P2003') {
           throw new BadRequestException(
-            'Invalid reference ID provided (e.g., furnishingId, municipalityId, or typeId).',
+            'Invalid reference ID provided (e.g., carTypeId, brandId, or modelId).',
           );
         }
         throw error;
@@ -1596,7 +1598,7 @@ export class ListingsService implements OnModuleInit {
    *    immediately (no further review needed).
    */
   async approve(id: string, reviewerId: string) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const listing = await this.prisma.carListing.findUnique({ where: { id } });
     if (!listing)
       throw new NotFoundException(`Listing with ID "${id}" not found`);
 
@@ -1646,7 +1648,7 @@ export class ListingsService implements OnModuleInit {
           });
         }
 
-        const result = await tx.listing.update({
+        const result = await tx.carListing.update({
           where: { id },
           data: {
             status: ListingStatus.ACTIVE,
@@ -1655,7 +1657,7 @@ export class ListingsService implements OnModuleInit {
           select: LISTING_SELECT,
         });
 
-        await tx.listingReview.create({
+        await tx.carListingReview.create({
           data: {
             listingId: id,
             action: ListingReviewAction.APPROVED,
@@ -1673,14 +1675,14 @@ export class ListingsService implements OnModuleInit {
         this.mail.sendListingApprovedEmail(
           owner.email,
           owner.name ?? 'there',
-          updated.propertyName,
+          updated.title,
           updated.slug ?? updated.id,
         );
       }
       this.notifications
         .sendToUser(owner.id, {
           title: 'Listing approved 🎉',
-          body: `"${updated.propertyName}" is now live on VillasQatar.`,
+          body: `"${updated.title}" is now live on CarSaudi.`,
           data: { type: 'LISTING_APPROVED', listingId: id },
         })
         .catch(() => {});
@@ -1690,7 +1692,7 @@ export class ListingsService implements OnModuleInit {
           type: InvoiceType.LISTING_PAYMENT,
           referenceId: id,
           billedToId: listing.createdById,
-          description: `Listing Publication — ${updated.propertyName}`,
+          description: `Listing Publication — ${updated.title}`,
           lineItems: [
             {
               description:
@@ -1712,7 +1714,7 @@ export class ListingsService implements OnModuleInit {
     const { price } = await this.getListingPricing(agencyDealerProfile);
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.listing.update({
+      const result = await tx.carListing.update({
         where: { id },
         data: {
           status: ListingStatus.PENDING_PAYMENT,
@@ -1721,11 +1723,11 @@ export class ListingsService implements OnModuleInit {
         select: LISTING_SELECT,
       });
 
-      await tx.listingReview.create({
+      await tx.carListingReview.create({
         data: {
           listingId: id,
           action: ListingReviewAction.APPROVED,
-          message: `Listing approved — payment of QAR ${price.toFixed(2)} required before it goes live`,
+          message: `Listing approved — payment of SAR ${price.toFixed(2)} required before it goes live`,
           reviewedById: reviewerId,
           snapshot: { previousStatus: listing.status },
         },
@@ -1739,14 +1741,14 @@ export class ListingsService implements OnModuleInit {
       this.mail.sendListingApprovalPaymentRequiredEmail(
         owner.email,
         owner.name ?? 'there',
-        updated.propertyName,
+        updated.title,
         price,
       );
     }
     this.notifications
       .sendToUser(owner.id, {
         title: 'Listing approved — payment required',
-        body: `"${updated.propertyName}" was approved! Pay QAR ${price.toFixed(2)} to publish it.`,
+        body: `"${updated.title}" was approved! Pay SAR ${price.toFixed(2)} to publish it.`,
         data: {
           type: 'LISTING_APPROVED_PAYMENT_REQUIRED',
           listingId: id,
@@ -1761,7 +1763,7 @@ export class ListingsService implements OnModuleInit {
   // ─── Reject ────────────────────────────────────────────────────────────────
 
   async reject(id: string, dto: RejectListingDto, reviewerId: string) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const listing = await this.prisma.carListing.findUnique({ where: { id } });
     if (!listing)
       throw new NotFoundException(`Listing with ID "${id}" not found`);
 
@@ -1770,13 +1772,13 @@ export class ListingsService implements OnModuleInit {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.listing.update({
+      const result = await tx.carListing.update({
         where: { id },
         data: { status: ListingStatus.REJECTED },
         select: LISTING_SELECT,
       });
 
-      await tx.listingReview.create({
+      await tx.carListingReview.create({
         data: {
           listingId: id,
           action: ListingReviewAction.REJECTED,
@@ -1794,14 +1796,14 @@ export class ListingsService implements OnModuleInit {
       this.mail.sendListingRejectedEmail(
         owner.email,
         owner.name ?? 'there',
-        updated.propertyName,
+        updated.title,
         dto.message,
       );
     }
     this.notifications
       .sendToUser(owner.id, {
         title: 'Listing needs changes',
-        body: `"${updated.propertyName}" wasn't approved as submitted — tap for details.`,
+        body: `"${updated.title}" wasn't approved as submitted — tap for details.`,
         data: { type: 'LISTING_REJECTED', listingId: id },
       })
       .catch(() => {});
@@ -1812,7 +1814,7 @@ export class ListingsService implements OnModuleInit {
   // ─── Mark as SOLD ──────────────────────────────────────────────────────────
 
   async markSold(id: string, userId: string, userRole: UserRole) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const listing = await this.prisma.carListing.findUnique({ where: { id } });
     if (!listing)
       throw new NotFoundException(`Listing with ID "${id}" not found`);
 
@@ -1845,13 +1847,13 @@ export class ListingsService implements OnModuleInit {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.listing.update({
+      const result = await tx.carListing.update({
         where: { id },
         data: { status: ListingStatus.SOLD, soldAt: new Date() },
         select: LISTING_SELECT,
       });
 
-      await tx.listingReview.create({
+      await tx.carListingReview.create({
         data: {
           listingId: id,
           action: ListingReviewAction.APPROVED,
@@ -1862,7 +1864,7 @@ export class ListingsService implements OnModuleInit {
       });
 
       // Clear tracking logs to save space
-      await tx.listingTrackingLog.deleteMany({ where: { listingId: id } });
+      await tx.carListingTrackingLog.deleteMany({ where: { listingId: id } });
 
       return result;
     });
@@ -1873,7 +1875,7 @@ export class ListingsService implements OnModuleInit {
   // ─── Resubmit (explicit endpoint, owner only) ─────────────────────────────
 
   async resubmit(id: string, userId: string) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const listing = await this.prisma.carListing.findUnique({ where: { id } });
     if (!listing)
       throw new NotFoundException(`Listing with ID "${id}" not found`);
 
@@ -1888,7 +1890,7 @@ export class ListingsService implements OnModuleInit {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.listing.update({
+      const result = await tx.carListing.update({
         where: { id },
         data: {
           status: ListingStatus.RESUBMITTED,
@@ -1897,7 +1899,7 @@ export class ListingsService implements OnModuleInit {
         select: LISTING_SELECT,
       });
 
-      await tx.listingReview.create({
+      await tx.carListingReview.create({
         data: {
           listingId: id,
           action: ListingReviewAction.RESUBMITTED,
@@ -1915,7 +1917,7 @@ export class ListingsService implements OnModuleInit {
   // ─── Delete ────────────────────────────────────────────────────────────────
 
   async remove(id: string, userId: string, userRole: UserRole) {
-    const listing = await this.prisma.listing.findUnique({ where: { id } });
+    const listing = await this.prisma.carListing.findUnique({ where: { id } });
     if (!listing)
       throw new NotFoundException(`Listing with ID "${id}" not found`);
 
@@ -1928,26 +1930,26 @@ export class ListingsService implements OnModuleInit {
       );
     }
 
-    await this.prisma.listing.delete({ where: { id } });
+    await this.prisma.carListing.delete({ where: { id } });
     return {
-      message: `Listing "${listing.propertyName}" deleted successfully`,
+      message: `Listing "${listing.title}" deleted successfully`,
     };
   }
 
-  // ─── Amenities & Tags Options ──────────────────────────────────────────────
+  // ─── Features & Tags Options ────────────────────────────────────────────────
 
   async getOptions() {
-    const amenities = await this.prisma.amenityOption.findMany({
+    const features = await this.prisma.carFeatureOption.findMany({
       select: { id: true, title: true, image: true },
     });
-    const nearbyTags = await this.prisma.nearbyTagOption.findMany({
+    const tags = await this.prisma.carTagOption.findMany({
       select: { id: true, title: true, image: true },
     });
-    const furnishingOptions = await this.prisma.furnishingOption.findMany({
+    const carTypes = await this.prisma.carTypeOption.findMany({
       select: { id: true, title: true },
     });
 
-    const listingTypesRaw = await this.prisma.listingTypeOption.findMany({
+    const carModelsRaw = await this.prisma.carModelOption.findMany({
       select: {
         id: true,
         title: true,
@@ -1962,19 +1964,17 @@ export class ListingsService implements OnModuleInit {
       },
     });
 
-    const listingTypes = listingTypesRaw.map((type) => {
-      const { _count, ...rest } = type;
+    const carModels = carModelsRaw.map((model) => {
+      const { _count, ...rest } = model;
       return { ...rest, listingCount: _count.listings };
     });
 
-    const municipalitiesRaw = await this.prisma.municipalityOption.findMany({
+    const brandsRaw = await this.prisma.carBrandOption.findMany({
       where: { isActive: true },
       select: {
         id: true,
         name: true,
         image: true,
-        latitude: true,
-        longitude: true,
         isPopular: true,
         _count: {
           select: {
@@ -1992,8 +1992,8 @@ export class ListingsService implements OnModuleInit {
       },
     });
 
-    const municipalities = municipalitiesRaw.map((municipality) => {
-      const { _count, listings, ...rest } = municipality;
+    const brands = brandsRaw.map((brand) => {
+      const { _count, listings, ...rest } = brand;
       return {
         ...rest,
         listingCount: _count.listings,
@@ -2002,18 +2002,18 @@ export class ListingsService implements OnModuleInit {
     });
 
     return {
-      amenities,
-      nearbyTags,
-      furnishingOptions,
-      listingTypes,
-      municipalities,
+      features,
+      tags,
+      carTypes,
+      carModels,
+      brands,
     };
   }
 
-  // ─── Popular Places ────────────────────────────────────────────────────────
+  // ─── Popular Brands ─────────────────────────────────────────────────────────
 
-  async getPopularPlaces() {
-    const popularPlaces = await this.prisma.municipalityOption.findMany({
+  async getPopularBrands() {
+    const popularBrands = await this.prisma.carBrandOption.findMany({
       where: {
         isPopular: true,
         isActive: true,
@@ -2022,8 +2022,6 @@ export class ListingsService implements OnModuleInit {
         id: true,
         name: true,
         image: true,
-        latitude: true,
-        longitude: true,
         isPopular: true,
         isActive: true,
         createdAt: true,
@@ -2040,22 +2038,22 @@ export class ListingsService implements OnModuleInit {
       },
     });
 
-    const data = popularPlaces.map((place) => {
-      const { _count, ...rest } = place;
+    const data = popularBrands.map((brand) => {
+      const { _count, ...rest } = brand;
       return {
         ...rest,
         activeListingsCount: _count.listings,
       };
     });
 
-    const totalActivePlacesCount = data.filter(
-      (p) => p.activeListingsCount > 0,
+    const totalActiveBrandsCount = data.filter(
+      (b) => b.activeListingsCount > 0,
     ).length;
 
     return {
       data,
-      totalPopularPlacesCount: data.length,
-      totalActivePlacesCount,
+      totalPopularBrandsCount: data.length,
+      totalActiveBrandsCount,
     };
   }
 
@@ -2068,13 +2066,13 @@ export class ListingsService implements OnModuleInit {
   ) {
     const { latitude, longitude, radiusKm = 10, page = 1, limit = 12 } = query;
 
-    const candidateWhere: Prisma.ListingWhereInput = {
+    const candidateWhere: Prisma.CarListingWhereInput = {
       status: ListingStatus.ACTIVE,
       latitude: { not: null },
       longitude: { not: null },
     };
 
-    const listings = await this.prisma.listing.findMany({
+    const listings = await this.prisma.carListing.findMany({
       where: candidateWhere,
       select: {
         ...LISTING_SELECT,
@@ -2176,9 +2174,9 @@ export class ListingsService implements OnModuleInit {
 
     // 2. Fallback to Google Maps Geocoding API if not found in DB
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    const query = rawSearch.toLowerCase().includes('qatar')
+    const query = rawSearch.toLowerCase().includes('saudi')
       ? rawSearch
-      : `${rawSearch}, Qatar`;
+      : `${rawSearch}, Saudi Arabia`;
 
     let googleData: any = null;
     let title = rawSearch;
@@ -2217,37 +2215,22 @@ export class ListingsService implements OnModuleInit {
       }
     }
 
-    // Fallback to Nominatim or MunicipalityOption if Google API fails or is not set
+    // Fallback to Nominatim if Google API fails or is not set
     if (!latitude || !longitude) {
-      const dbMunicipality = await this.prisma.municipalityOption.findFirst({
-        where: {
-          name: { contains: normalizedKeyword, mode: 'insensitive' },
-          latitude: { not: null },
-          longitude: { not: null },
-        },
-      });
-
-      if (dbMunicipality) {
-        title = `${dbMunicipality.name}, Qatar`;
-        latitude = dbMunicipality.latitude;
-        longitude = dbMunicipality.longitude;
-        areaName = dbMunicipality.name;
-      } else {
-        try {
-          const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=qa`;
-          const res = await fetch(url, {
-            headers: { 'User-Agent': 'VillasQatarBackend/1.0' },
-          });
-          const nominatimResults = await res.json();
-          if (nominatimResults && nominatimResults.length > 0) {
-            const item = nominatimResults[0];
-            title = item.display_name;
-            latitude = parseFloat(item.lat);
-            longitude = parseFloat(item.lon);
-          }
-        } catch (err) {
-          // Fallback
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=sa`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'CarSaudiBackend/1.0' },
+        });
+        const nominatimResults = await res.json();
+        if (nominatimResults && nominatimResults.length > 0) {
+          const item = nominatimResults[0];
+          title = item.display_name;
+          latitude = parseFloat(item.lat);
+          longitude = parseFloat(item.lon);
         }
+      } catch (err) {
+        // Fallback
       }
     }
 
@@ -2339,7 +2322,7 @@ export class ListingsService implements OnModuleInit {
       try {
         const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
         const res = await fetch(url, {
-          headers: { 'User-Agent': 'VillasQatarBackend/1.0' },
+          headers: { 'User-Agent': 'CarSaudiBackend/1.0' },
         });
         const nominatimResult = await res.json();
         if (nominatimResult && !nominatimResult.error) {
@@ -2396,19 +2379,18 @@ export class ListingsService implements OnModuleInit {
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const prompt = `
-You are an expert real estate appraiser in Qatar.
-Estimate the property price in QAR (Qatari Riyal) for the following property:
-- Location/Area: ${dto.areaName}
-- Property Type: ${dto.propertyType}
-- Size: ${dto.areaSqft} sqft
-${dto.bhk ? `- Bedrooms: ${dto.bhk}` : ''}
-${dto.bathrooms ? `- Bathrooms: ${dto.bathrooms}` : ''}
-${dto.furnishingStatus ? `- Furnishing Status: ${dto.furnishingStatus}` : ''}
-${dto.floorAbove ? `- Floor: ${dto.floorAbove}` : ''}
-${dto.totalFloors ? `- Total Floors in Building: ${dto.totalFloors}` : ''}
-${dto.parkingAvailable !== undefined ? `- Parking Available: ${dto.parkingAvailable ? 'Yes' : 'No'}` : ''}
+You are an expert car valuation specialist in Saudi Arabia.
+Estimate the car price in SAR (Saudi Riyal) for the following car:
+- Brand: ${dto.brand}
+- Model: ${dto.carModel}
+- Model Year: ${dto.modelYear}
+- Mileage: ${dto.mileage} km
+${dto.carType ? `- Car Type: ${dto.carType}` : ''}
+${dto.condition ? `- Condition: ${dto.condition}` : ''}
+${dto.fuelType ? `- Fuel Type: ${dto.fuelType}` : ''}
+${dto.transmission ? `- Transmission: ${dto.transmission}` : ''}
 ${dto.highlights ? `- Highlights: ${dto.highlights}` : ''}
-${dto.amenities && dto.amenities.length > 0 ? `- Amenities: ${dto.amenities.join(', ')}` : ''}
+${dto.features && dto.features.length > 0 ? `- Features: ${dto.features.join(', ')}` : ''}
 
 Return ONLY a JSON object exactly matching this format:
 {
@@ -2445,26 +2427,26 @@ Return ONLY a JSON object exactly matching this format:
   private async buildWhereClause(
     query: QueryListingDto,
     publicOnly: boolean,
-  ): Promise<Prisma.ListingWhereInput> {
+  ): Promise<Prisma.CarListingWhereInput> {
     const {
-      typeId,
+      modelId,
       purpose,
       status,
-      municipalityId,
+      brandId,
       areaName,
       minPrice,
       maxPrice,
       priceNegotiable,
-      bedrooms,
-      minBedrooms,
-      maxBedrooms,
-      bathrooms,
-      minBathrooms,
-      minArea,
-      maxArea,
-      furnishingId,
-      amenityId,
-      nearbyTagId,
+      minModelYear,
+      maxModelYear,
+      minMileage,
+      maxMileage,
+      fuelType,
+      transmission,
+      condition,
+      carTypeId,
+      featureId,
+      tagId,
       isPotentialDuplicate,
       createdById,
       userId,
@@ -2480,7 +2462,7 @@ Return ONLY a JSON object exactly matching this format:
     if (latitude != null && longitude != null && radius != null) {
       // Find listings within radius using Haversine formula directly in DB
       const result = await this.prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM listings 
+        SELECT id FROM car_listings
         WHERE latitude IS NOT NULL 
           AND longitude IS NOT NULL
           AND (
@@ -2513,41 +2495,19 @@ Return ONLY a JSON object exactly matching this format:
       return [val as T];
     };
 
-    const parseNumberArray = (val: any): number[] | undefined => {
-      if (val === undefined || val === null || val === '') return undefined;
-      if (Array.isArray(val)) {
-        const nums = val
-          .flatMap((v) => (typeof v === 'string' ? v.split(',') : v))
-          .map((v) => Number(v))
-          .filter((n) => !isNaN(n));
-        return nums.length > 0 ? nums : undefined;
-      }
-      if (typeof val === 'string') {
-        const nums = val
-          .split(',')
-          .map((v) => Number(v.trim()))
-          .filter((n) => !isNaN(n));
-        return nums.length > 0 ? nums : undefined;
-      }
-      if (typeof val === 'number') return [val];
-      return undefined;
-    };
-
     // Resolve owner filter (support both createdById and userId)
     const ownerId = userId || createdById;
 
-    const typeIds = parseArray<string>(typeId);
+    const modelIds = parseArray<string>(modelId);
     const purposes = parseArray<ListingPurpose>(purpose);
     const statuses = parseArray<ListingStatus>(status);
-    const municipalityIds = parseArray<string>(municipalityId);
+    const brandIds = parseArray<string>(brandId);
     const areaNames = parseArray<string>(areaName);
-    const furnishingIds = parseArray<string>(furnishingId);
-    const amenityIds = parseArray<string>(amenityId);
-    const nearbyTagIds = parseArray<string>(nearbyTagId);
-    const bedroomList = parseNumberArray(bedrooms);
-    const bathroomList = parseNumberArray(bathrooms);
+    const carTypeIds = parseArray<string>(carTypeId);
+    const featureIds = parseArray<string>(featureId);
+    const tagIds = parseArray<string>(tagId);
 
-    const where: Prisma.ListingWhereInput = {
+    const where: Prisma.CarListingWhereInput = {
       ...(idIn !== undefined && { id: { in: idIn } }),
       ...(publicOnly && {
         status: { in: [ListingStatus.ACTIVE, ListingStatus.SOLD] },
@@ -2557,35 +2517,35 @@ Return ONLY a JSON object exactly matching this format:
         statuses.length > 0 && {
           status: statuses.length === 1 ? statuses[0] : { in: statuses },
         }),
-      ...(typeIds &&
-        typeIds.length > 0 && {
-          typeId: typeIds.length === 1 ? typeIds[0] : { in: typeIds },
+      ...(modelIds &&
+        modelIds.length > 0 && {
+          modelId: modelIds.length === 1 ? modelIds[0] : { in: modelIds },
         }),
       ...(purposes &&
         purposes.length > 0 && {
           purpose: purposes.length === 1 ? purposes[0] : { in: purposes },
         }),
-      ...(municipalityIds &&
-        municipalityIds.length > 0 && {
-          municipalityId:
-            municipalityIds.length === 1
-              ? municipalityIds[0]
-              : { in: municipalityIds },
+      ...(brandIds &&
+        brandIds.length > 0 && {
+          brandId:
+            brandIds.length === 1
+              ? brandIds[0]
+              : { in: brandIds },
         }),
-      ...(furnishingIds &&
-        furnishingIds.length > 0 && {
-          furnishingId:
-            furnishingIds.length === 1
-              ? furnishingIds[0]
-              : { in: furnishingIds },
+      ...(carTypeIds &&
+        carTypeIds.length > 0 && {
+          carTypeId:
+            carTypeIds.length === 1
+              ? carTypeIds[0]
+              : { in: carTypeIds },
         }),
-      ...(amenityIds &&
-        amenityIds.length > 0 && {
-          amenities: { some: { id: { in: amenityIds } } },
+      ...(featureIds &&
+        featureIds.length > 0 && {
+          features: { some: { id: { in: featureIds } } },
         }),
-      ...(nearbyTagIds &&
-        nearbyTagIds.length > 0 && {
-          nearbyTags: { some: { id: { in: nearbyTagIds } } },
+      ...(tagIds &&
+        tagIds.length > 0 && {
+          tags: { some: { id: { in: tagIds } } },
         }),
       ...(minPrice !== undefined || maxPrice !== undefined
         ? {
@@ -2596,29 +2556,25 @@ Return ONLY a JSON object exactly matching this format:
           }
         : {}),
       ...(priceNegotiable !== undefined && { priceNegotiable }),
-      ...(bedroomList && bedroomList.length > 0
-        ? { bedrooms: { in: bedroomList } }
-        : minBedrooms !== undefined || maxBedrooms !== undefined
-          ? {
-              bedrooms: {
-                ...(minBedrooms !== undefined && { gte: minBedrooms }),
-                ...(maxBedrooms !== undefined && { lte: maxBedrooms }),
-              },
-            }
-          : {}),
-      ...(bathroomList && bathroomList.length > 0
-        ? { bathrooms: { in: bathroomList } }
-        : minBathrooms !== undefined
-          ? { bathrooms: { gte: minBathrooms } }
-          : {}),
-      ...(minArea !== undefined || maxArea !== undefined
+      ...(minModelYear !== undefined || maxModelYear !== undefined
         ? {
-            area: {
-              ...(minArea !== undefined && { gte: minArea }),
-              ...(maxArea !== undefined && { lte: maxArea }),
+            modelYear: {
+              ...(minModelYear !== undefined && { gte: minModelYear }),
+              ...(maxModelYear !== undefined && { lte: maxModelYear }),
             },
           }
         : {}),
+      ...(minMileage !== undefined || maxMileage !== undefined
+        ? {
+            mileage: {
+              ...(minMileage !== undefined && { gte: minMileage }),
+              ...(maxMileage !== undefined && { lte: maxMileage }),
+            },
+          }
+        : {}),
+      ...(fuelType !== undefined && { fuelType }),
+      ...(transmission !== undefined && { transmission }),
+      ...(condition !== undefined && { condition }),
       ...(isPotentialDuplicate !== undefined &&
         !publicOnly && { isPotentialDuplicate }),
       ...(ownerId && { createdById: ownerId }),
@@ -2648,7 +2604,7 @@ Return ONLY a JSON object exactly matching this format:
     if (search) {
       const searchConditions = [
         { referenceCode: { contains: search, mode: 'insensitive' as const } },
-        { propertyName: { contains: search, mode: 'insensitive' as const } },
+        { title: { contains: search, mode: 'insensitive' as const } },
         { description: { contains: search, mode: 'insensitive' as const } },
         { areaName: { contains: search, mode: 'insensitive' as const } },
         { addressLine1: { contains: search, mode: 'insensitive' as const } },
@@ -2670,7 +2626,7 @@ Return ONLY a JSON object exactly matching this format:
   }
 
   private async paginate(
-    where: Prisma.ListingWhereInput,
+    where: Prisma.CarListingWhereInput,
     query: QueryListingDto,
     userId?: string,
     includeReviews = false,
@@ -2683,19 +2639,19 @@ Return ONLY a JSON object exactly matching this format:
     } = query;
     const skip = (page - 1) * limit;
 
-    const orderBy: Prisma.ListingOrderByWithRelationInput =
+    const orderBy: Prisma.CarListingOrderByWithRelationInput =
       sortBy === 'price'
         ? { price: sortOrder }
-        : sortBy === 'area'
-          ? { area: sortOrder }
-          : sortBy === 'bedrooms'
-            ? { bedrooms: sortOrder }
+        : sortBy === 'mileage'
+          ? { mileage: sortOrder }
+          : sortBy === 'modelYear'
+            ? { modelYear: sortOrder }
             : { createdAt: sortOrder };
 
     const now = new Date();
 
     const [listings, total] = await Promise.all([
-      this.prisma.listing.findMany({
+      this.prisma.carListing.findMany({
         where,
         skip,
         take: limit,
@@ -2732,7 +2688,7 @@ Return ONLY a JSON object exactly matching this format:
           },
         },
       }),
-      this.prisma.listing.count({ where }),
+      this.prisma.carListing.count({ where }),
     ]);
 
     const mappedListings = listings.map((l) => {

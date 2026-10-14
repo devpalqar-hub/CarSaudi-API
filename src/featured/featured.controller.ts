@@ -55,10 +55,10 @@ export class FeaturedController {
   @ApiOperation({
     summary: 'Get featured listings for a specific placement location',
     description:
-      'Returns a **randomly shuffled**, paginated pool of currently active featured properties for the given location. ' +
-      'Each API call yields a different order — no property is always shown first.\n\n' +
-      '**Locations**: `HOME_PAGE` | `LISTING_PAGE` | `PROPERTY_DETAIL_PAGE`\n\n' +
-      'Supports `search` for text-based filtering of property names and areas. ' +
+      'Returns a **randomly shuffled**, paginated pool of currently active featured car listings for the given location. ' +
+      'Each API call yields a different order — no listing is always shown first.\n\n' +
+      '**Locations**: `HOME_PAGE` | `LISTING_PAGE` | `CAR_DETAIL_PAGE`\n\n' +
+      'Supports `search` for text-based filtering of listing titles and areas. ' +
       'Includes `isWishlisted` flag if user is authenticated.',
   })
   @ApiQuery({
@@ -85,7 +85,7 @@ export class FeaturedController {
     name: 'search',
     required: false,
     type: String,
-    description: 'Search by property name, area name, or description',
+    description: 'Search by listing title, area name, or description',
   })
   @ApiResponse({
     status: 200,
@@ -219,7 +219,7 @@ export class FeaturedController {
 
   @Post('admin-add')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.FEATURED_PROPERTIES_VIEW)
+  @RequirePermissions(Permission.FEATURED_CARS_VIEW)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -244,7 +244,7 @@ export class FeaturedController {
 
   @Get('admin')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.FEATURED_PROPERTIES_VIEW)
+  @RequirePermissions(Permission.FEATURED_CARS_VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Admin: List all featured subscriptions',
@@ -263,7 +263,7 @@ export class FeaturedController {
 
   @Delete('admin/:id')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions(Permission.FEATURED_PROPERTIES_VIEW)
+  @RequirePermissions(Permission.FEATURED_CARS_VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Admin: Remove (expire) a featured subscription immediately',
@@ -295,7 +295,7 @@ export class FeaturedController {
   @ApiOperation({
     summary: 'Dealer: Directly feature a listing (bypasses payment for now)',
     description:
-      'Allows a dealer (or dealer staff) to feature an active property listing directly without Stripe checkout. ' +
+      'Allows a dealer (or dealer staff) to feature an active car listing directly without Stripe checkout. ' +
       'Creates active featured subscriptions for the placement locations and duration specified in the chosen plan.',
   })
   @ApiResponse({ status: 201, description: 'Listing featured successfully' })

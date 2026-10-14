@@ -68,7 +68,7 @@ export class GetDealerDashboardDto {
   // ── Scope filters ───────────────────────────────────────────────────────
 
   @ApiPropertyOptional({
-    description: 'Restrict all metrics to a single property (listing CUID or slug)',
+    description: 'Restrict all metrics to a single listing (listing CUID or slug)',
   })
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
@@ -85,11 +85,11 @@ export class GetDealerDashboardDto {
   @IsString()
   staffUserId?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by property type ID' })
+  @ApiPropertyOptional({ description: 'Filter by car model ID' })
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
   @IsString()
-  typeId?: string;
+  modelId?: string;
 
   @ApiPropertyOptional({
     enum: ListingPurpose,
@@ -115,11 +115,11 @@ export class GetDealerDashboardDto {
   @IsEnum(ListingStatus)
   status?: ListingStatus;
 
-  @ApiPropertyOptional({ description: 'Filter by municipality ID (location)' })
+  @ApiPropertyOptional({ description: 'Filter by brand ID (location)' })
   @IsOptional()
   @Transform(({ value }) => (value === '' || value === null ? undefined : value))
   @IsString()
-  municipalityId?: string;
+  brandId?: string;
 
   @ApiPropertyOptional({
     description:

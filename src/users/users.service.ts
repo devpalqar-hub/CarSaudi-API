@@ -150,7 +150,7 @@ export class UsersService {
     // Batched, single extra query for the whole page — not N+1 per user
     const userIds = users.map((u) => u.id);
     const listingCounts = userIds.length
-      ? await this.prisma.listing.groupBy({
+      ? await this.prisma.carListing.groupBy({
           by: ['createdById'],
           where: { createdById: { in: userIds } },
           _count: true,
@@ -162,7 +162,7 @@ export class UsersService {
 
     const data = users.map((u) => ({
       ...u,
-      /** Total number of properties (listings) this user has created */
+      /** Total number of car listings this user has created */
       listingsCount: countByUser.get(u.id) ?? 0,
     }));
 
@@ -210,19 +210,19 @@ export class UsersService {
     }
 
     const [listingsCount, listings] = await Promise.all([
-      this.prisma.listing.count({ where: { createdById: id } }),
-      this.prisma.listing.findMany({
+      this.prisma.carListing.count({ where: { createdById: id } }),
+      this.prisma.carListing.findMany({
         where: { createdById: id },
         select: {
           id: true,
           referenceCode: true,
           slug: true,
-          propertyName: true,
+          title: true,
           purpose: true,
           status: true,
           price: true,
-          type: { select: { id: true, title: true } },
-          municipality: { select: { id: true, name: true } },
+          model: { select: { id: true, title: true } },
+          brand: { select: { id: true, name: true } },
           areaName: true,
           viewsCount: true,
           createdAt: true,
@@ -239,9 +239,9 @@ export class UsersService {
 
     return {
       ...user,
-      /** Total number of properties (listings) this user has created */
+      /** Total number of car listings this user has created */
       listingsCount,
-      /** Up to the 50 most recent properties this user has created */
+      /** Up to the 50 most recent car listings this user has created */
       listings,
     };
   }

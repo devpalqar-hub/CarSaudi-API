@@ -23,7 +23,7 @@ export class CreateCheckoutDto {
       'Where to redirect after a successful payment (web/deep-link). ' +
       '`{CHECKOUT_SESSION_ID}` is appended as a `session_id` query param automatically. ' +
       'Falls back to `FRONTEND_URL/featured/success` when omitted.',
-    example: 'villasqatar://featured/success',
+    example: 'carsaudi://featured/success',
   })
   @IsOptional()
   @IsString()
@@ -33,7 +33,7 @@ export class CreateCheckoutDto {
     description:
       'Where to redirect if the payment is cancelled/fails (web/deep-link). ' +
       'Falls back to `FRONTEND_URL/featured/cancel` when omitted.',
-    example: 'villasqatar://featured/failed',
+    example: 'carsaudi://featured/failed',
   })
   @IsOptional()
   @IsString()

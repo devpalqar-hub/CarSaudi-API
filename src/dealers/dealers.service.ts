@@ -161,7 +161,7 @@ export class DealersService {
     ]);
 
     // Resolve agency membership (dealer + their active staff) for the whole page in one query,
-    // so the active-property count matches everything the dealer's listings/analytics endpoints
+    // so the active-listing count matches everything the dealer's listings/analytics endpoints
     // consider "theirs" (staff-created listings included).
     const dealerIds = users.map((u) => u.id);
     const staffRecords = dealerIds.length
@@ -182,7 +182,7 @@ export class DealersService {
       new Set([...dealerIds, ...staffRecords.map((s) => s.staffUserId)]),
     );
     const activeCounts = allCreatorIds.length
-      ? await this.prisma.listing.groupBy({
+      ? await this.prisma.carListing.groupBy({
           by: ['createdById'],
           where: {
             createdById: { in: allCreatorIds },
@@ -259,7 +259,7 @@ export class DealersService {
     const staffIds = staffMembers.map((s) => s.staffUserId);
     const allCreatorIds = [id, ...staffIds];
 
-    const listings = await this.prisma.listing.findMany({
+    const listings = await this.prisma.carListing.findMany({
       where: {
         createdById: { in: allCreatorIds },
       },
@@ -267,27 +267,29 @@ export class DealersService {
         id: true,
         referenceCode: true,
         slug: true,
-        propertyName: true,
+        title: true,
         description: true,
         purpose: true,
-        typeId: true,
-        type: { select: { id: true, title: true } },
+        modelId: true,
+        model: { select: { id: true, title: true } },
         price: true,
         priceNegotiable: true,
-        bedrooms: true,
-        bathrooms: true,
-        area: true,
-        livingRooms: true,
-        parkingSpaces: true,
+        modelYear: true,
+        mileage: true,
+        carTypeId: true,
+        carType: true,
+        transmission: true,
+        fuelType: true,
+        condition: true,
         addressLine1: true,
         addressLine2: true,
         areaName: true,
-        municipalityId: true,
-        municipality: { select: { id: true, name: true, image: true } },
+        brandId: true,
+        brand: { select: { id: true, name: true, image: true } },
         contactPhone: true,
         contactWhatsapp: true,
-        amenities: true,
-        nearbyTags: true,
+        features: true,
+        tags: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -378,7 +380,7 @@ export class DealersService {
 
   /**
    * Full profile for the dealer's own public page: cover/logo images, social/contact links,
-   * property stats (sold/active across the whole agency incl. staff), free-listing/featured
+   * listing stats (sold/active across the whole agency incl. staff), free-listing/featured
    * quota, and current subscription plan details (name, discounts, expiry, days remaining).
    * Callable by the dealer themselves or any of their active staff (staff see their agency's).
    */
@@ -433,13 +435,13 @@ export class DealersService {
     const now = new Date();
 
     const [soldCount, activeCount, activeSubscription] = await Promise.all([
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: {
           createdById: { in: agencyUserIds },
           status: ListingStatus.SOLD,
         },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: {
           createdById: { in: agencyUserIds },
           status: ListingStatus.ACTIVE,
@@ -641,7 +643,7 @@ export class DealersService {
       scopedCreatorIds = [dto.staffUserId];
     }
 
-    const where: Prisma.ListingWhereInput = {
+    const where: Prisma.CarListingWhereInput = {
       createdById: { in: scopedCreatorIds },
     };
 
@@ -652,12 +654,12 @@ export class DealersService {
       ];
     }
 
-    if (dto.typeId) {
-      where.typeId = dto.typeId;
+    if (dto.modelId) {
+      where.modelId = dto.modelId;
     }
 
-    if (dto.municipalityId) {
-      where.municipalityId = dto.municipalityId;
+    if (dto.brandId) {
+      where.brandId = dto.brandId;
     }
 
     if (dto.areaName) {
@@ -665,8 +667,8 @@ export class DealersService {
     }
 
     if (dto.search) {
-      const searchOr: Prisma.ListingWhereInput[] = [
-        { propertyName: { contains: dto.search, mode: 'insensitive' } },
+      const searchOr: Prisma.CarListingWhereInput[] = [
+        { title: { contains: dto.search, mode: 'insensitive' } },
         { slug: { contains: dto.search, mode: 'insensitive' } },
       ];
       if (where.OR) {
@@ -720,28 +722,28 @@ export class DealersService {
       totalVisitsCount,
       totalConversationsCount,
     ] = await Promise.all([
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where,
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: {
           ...where,
           status: ListingStatus.ACTIVE,
         },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: {
           ...where,
           status: { in: [ListingStatus.PENDING, ListingStatus.RESUBMITTED] },
         },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: {
           ...where,
           status: ListingStatus.REJECTED,
         },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: {
           ...where,
           status: ListingStatus.SOLD,
@@ -755,7 +757,7 @@ export class DealersService {
           endDate: { gte: now },
         },
       }),
-      this.prisma.listing.aggregate({
+      this.prisma.carListing.aggregate({
         where,
         _sum: {
           viewsCount: true,
@@ -763,7 +765,7 @@ export class DealersService {
           reachCount: true,
         },
       }),
-      this.prisma.propertyVisit.count({
+      this.prisma.carVisit.count({
         where: { listing: where },
       }),
       this.prisma.chatConversation.count({
@@ -779,26 +781,26 @@ export class DealersService {
 
     // If date range filter is active, calculate precise period metrics from tracking logs
     if (hasDateFilter) {
-      const matchingListings = await this.prisma.listing.findMany({
+      const matchingListings = await this.prisma.carListing.findMany({
         where,
         select: { id: true },
       });
       const matchingListingIds = matchingListings.map((l) => l.id);
 
       if (matchingListingIds.length > 0) {
-        const logWhere: Prisma.ListingTrackingLogWhereInput = {
+        const logWhere: Prisma.CarListingTrackingLogWhereInput = {
           listingId: { in: matchingListingIds },
           createdAt: dateFilter,
         };
 
         const [impCount, vCount, reachGroups] = await Promise.all([
-          this.prisma.listingTrackingLog.count({
+          this.prisma.carListingTrackingLog.count({
             where: { ...logWhere, type: TrackingLogType.IMPRESSION },
           }),
-          this.prisma.listingTrackingLog.count({
+          this.prisma.carListingTrackingLog.count({
             where: { ...logWhere, type: TrackingLogType.VIEW },
           }),
-          this.prisma.listingTrackingLog.groupBy({
+          this.prisma.carListingTrackingLog.groupBy({
             by: ['deviceId', 'listingId'],
             where: { ...logWhere, type: TrackingLogType.VIEW },
           }),
@@ -812,14 +814,14 @@ export class DealersService {
 
     // 2. Fetch paginated listing performance data
     const [listings, totalFiltered] = await Promise.all([
-      this.prisma.listing.findMany({
+      this.prisma.carListing.findMany({
         where,
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         select: {
           id: true,
-          propertyName: true,
+          title: true,
           slug: true,
           status: true,
           purpose: true,
@@ -829,7 +831,7 @@ export class DealersService {
           reachCount: true,
           createdAt: true,
           updatedAt: true,
-          type: {
+          model: {
             select: { id: true, title: true },
           },
           createdBy: {
@@ -851,7 +853,7 @@ export class DealersService {
           },
         },
       }),
-      this.prisma.listing.count({ where }),
+      this.prisma.carListing.count({ where }),
     ]);
 
     let formattedListings = listings.map((l) => {
@@ -865,7 +867,7 @@ export class DealersService {
 
     if (hasDateFilter && listings.length > 0) {
       const listingIdsPage = listings.map((l) => l.id);
-      const periodLogs = await this.prisma.listingTrackingLog.findMany({
+      const periodLogs = await this.prisma.carListingTrackingLog.findMany({
         where: {
           listingId: { in: listingIdsPage },
           createdAt: dateFilter,
@@ -917,10 +919,10 @@ export class DealersService {
         search: dto.search ?? null,
         status: dto.status ?? null,
         purpose: dto.purpose ?? null,
-        typeId: dto.typeId ?? null,
+        modelId: dto.modelId ?? null,
         staffUserId: dto.staffUserId ?? null,
         listingId: dto.listingId ?? null,
-        municipalityId: dto.municipalityId ?? null,
+        brandId: dto.brandId ?? null,
         areaName: dto.areaName ?? null,
         sortBy,
         sortOrder,
@@ -957,8 +959,8 @@ export class DealersService {
   /**
    * Single all-in-one analytics dashboard for a dealer agency (dealer + all dealer staff).
    * Combines listing status counts, engagement metrics (views/impressions/reach), in-app
-   * chat + WhatsApp chat-initiation counts, scheduled property visits, remaining free
-   * listing/featured quota, active subscription plan expiry, total property sales, and a
+   * chat + WhatsApp chat-initiation counts, scheduled visits, remaining free
+   * listing/featured quota, active subscription plan expiry, total car sales, and a
    * visits-vs-views-vs-chats trend graph — all behind one call with fully optional filters.
    */
   async getDealerDashboard(
@@ -1045,20 +1047,20 @@ export class DealersService {
     const periodFilter: Prisma.DateTimeFilter = { gte: start, lte: end };
     const now = new Date();
 
-    // Status-agnostic base filter — agency/staff scope + property/type/purpose/location.
+    // Status-agnostic base filter — agency/staff scope + model/purpose/location.
     // Used for the status breakdown itself (a status filter here would be self-defeating).
-    const baseListingFilter: Prisma.ListingWhereInput = {
+    const baseListingFilter: Prisma.CarListingWhereInput = {
       createdById: { in: scopedCreatorIds },
-      ...(dto.typeId && { typeId: dto.typeId }),
+      ...(dto.modelId && { modelId: dto.modelId }),
       ...(dto.purpose && { purpose: dto.purpose }),
-      ...(dto.municipalityId && { municipalityId: dto.municipalityId }),
+      ...(dto.brandId && { brandId: dto.brandId }),
       ...(dto.areaName && {
         areaName: { contains: dto.areaName, mode: 'insensitive' },
       }),
     };
 
     if (dto.listingId) {
-      const foundListing = await this.prisma.listing.findFirst({
+      const foundListing = await this.prisma.carListing.findFirst({
         where: {
           createdById: { in: scopedCreatorIds },
           OR: [{ id: dto.listingId }, { slug: dto.listingId }],
@@ -1066,13 +1068,13 @@ export class DealersService {
         select: { id: true },
       });
       if (!foundListing) {
-        throw new NotFoundException('Property not found in this agency');
+        throw new NotFoundException('Listing not found in this agency');
       }
       baseListingFilter.id = foundListing.id;
     }
 
     // Full filter — adds the optional status filter, used for everything except the status breakdown
-    const listingFilter: Prisma.ListingWhereInput = {
+    const listingFilter: Prisma.CarListingWhereInput = {
       ...baseListingFilter,
       ...(dto.status && { status: dto.status }),
     };
@@ -1089,23 +1091,23 @@ export class DealersService {
       soldAggregate,
       activeSubscription,
     ] = await Promise.all([
-      this.prisma.listing.count({ where: baseListingFilter }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({ where: baseListingFilter }),
+      this.prisma.carListing.count({
         where: { ...baseListingFilter, status: ListingStatus.ACTIVE },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: {
           ...baseListingFilter,
           status: { in: [ListingStatus.PENDING, ListingStatus.RESUBMITTED] },
         },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: { ...baseListingFilter, status: ListingStatus.REJECTED },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: { ...baseListingFilter, status: ListingStatus.SOLD },
       }),
-      this.prisma.listing.count({
+      this.prisma.carListing.count({
         where: { ...baseListingFilter, status: ListingStatus.INACTIVE },
       }),
       this.prisma.featuredSubscription.count({
@@ -1116,7 +1118,7 @@ export class DealersService {
           endDate: { gte: now },
         },
       }),
-      this.prisma.listing.aggregate({
+      this.prisma.carListing.aggregate({
         where: listingFilter,
         _sum: {
           viewsCount: true,
@@ -1125,7 +1127,7 @@ export class DealersService {
           whatsappClicksCount: true,
         },
       }),
-      this.prisma.listing.aggregate({
+      this.prisma.carListing.aggregate({
         where: { ...baseListingFilter, status: ListingStatus.SOLD },
         _sum: { price: true },
         _count: true,
@@ -1160,28 +1162,28 @@ export class DealersService {
       chatLogs,
       topListings,
     ] = await Promise.all([
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: {
           listing: listingFilter,
           type: TrackingLogType.IMPRESSION,
           createdAt: periodFilter,
         },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: {
           listing: listingFilter,
           type: TrackingLogType.VIEW,
           createdAt: periodFilter,
         },
       }),
-      this.prisma.listingTrackingLog.count({
+      this.prisma.carListingTrackingLog.count({
         where: {
           listing: listingFilter,
           type: TrackingLogType.WHATSAPP_CLICK,
           createdAt: periodFilter,
         },
       }),
-      this.prisma.listingTrackingLog.groupBy({
+      this.prisma.carListingTrackingLog.groupBy({
         by: ['deviceId', 'listingId'],
         where: {
           listing: listingFilter,
@@ -1203,16 +1205,16 @@ export class DealersService {
         select: { userId: true },
         distinct: ['userId'],
       }),
-      this.prisma.propertyVisit.count({ where: { listing: listingFilter } }),
-      this.prisma.propertyVisit.count({
+      this.prisma.carVisit.count({ where: { listing: listingFilter } }),
+      this.prisma.carVisit.count({
         where: { listing: listingFilter, createdAt: periodFilter },
       }),
-      this.prisma.propertyVisit.groupBy({
+      this.prisma.carVisit.groupBy({
         by: ['status'],
         where: { listing: listingFilter },
         _count: true,
       }),
-      this.prisma.listingTrackingLog.findMany({
+      this.prisma.carListingTrackingLog.findMany({
         where: {
           listing: listingFilter,
           type: TrackingLogType.VIEW,
@@ -1220,7 +1222,7 @@ export class DealersService {
         },
         select: { createdAt: true },
       }),
-      this.prisma.listingTrackingLog.findMany({
+      this.prisma.carListingTrackingLog.findMany({
         where: {
           listing: listingFilter,
           type: TrackingLogType.WHATSAPP_CLICK,
@@ -1228,7 +1230,7 @@ export class DealersService {
         },
         select: { createdAt: true },
       }),
-      this.prisma.propertyVisit.findMany({
+      this.prisma.carVisit.findMany({
         where: { listing: listingFilter, createdAt: periodFilter },
         select: { createdAt: true },
       }),
@@ -1236,13 +1238,13 @@ export class DealersService {
         where: { listing: listingFilter, createdAt: periodFilter },
         select: { createdAt: true },
       }),
-      this.prisma.listing.findMany({
+      this.prisma.carListing.findMany({
         where: listingFilter,
         orderBy: { viewsCount: 'desc' },
         take: 5,
         select: {
           id: true,
-          propertyName: true,
+          title: true,
           slug: true,
           referenceCode: true,
           status: true,
@@ -1251,7 +1253,7 @@ export class DealersService {
           viewsCount: true,
           reachCount: true,
           whatsappClicksCount: true,
-          type: { select: { id: true, title: true } },
+          model: { select: { id: true, title: true } },
           _count: { select: { conversations: true, visits: true } },
         },
       }),
@@ -1307,10 +1309,10 @@ export class DealersService {
         granularity,
         listingId: dto.listingId ?? null,
         staffUserId: dto.staffUserId ?? null,
-        typeId: dto.typeId ?? null,
+        modelId: dto.modelId ?? null,
         purpose: dto.purpose ?? null,
         status: dto.status ?? null,
-        municipalityId: dto.municipalityId ?? null,
+        brandId: dto.brandId ?? null,
         areaName: dto.areaName ?? null,
       },
       overview: {
@@ -1391,13 +1393,13 @@ export class DealersService {
       },
       topListings: topListings.map((l) => ({
         id: l.id,
-        propertyName: l.propertyName,
+        title: l.title,
         slug: l.slug,
         referenceCode: l.referenceCode,
         status: l.status,
         purpose: l.purpose,
         price: l.price,
-        type: l.type,
+        model: l.model,
         viewsCount: l.viewsCount,
         reachCount: l.reachCount,
         whatsappClicksCount: l.whatsappClicksCount,

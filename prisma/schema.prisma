@@ -35,13 +35,13 @@ enum Permission {
   // Dashboard
   DASHBOARD_VIEW
 
-  // Property Listings
-  PROPERTIES_VIEW
-  PROPERTIES_MANAGE
-  PROPERTIES_REVIEW
+  // Car Listings
+  CARS_VIEW
+  CARS_MANAGE
+  CARS_REVIEW
 
-  // Property Analytics
-  PROPERTY_ANALYTICS_VIEW
+  // Car Analytics
+  CAR_ANALYTICS_VIEW
 
   // Listing Payment Settings
   LISTING_SETTINGS_VIEW
@@ -59,8 +59,8 @@ enum Permission {
   FEATURED_PLANS_VIEW
   FEATURED_PLANS_MANAGE
 
-  // Featured Properties
-  FEATURED_PROPERTIES_VIEW
+  // Featured Cars
+  FEATURED_CARS_VIEW
 
   // Subscription Plans
   SUBSCRIPTION_PLANS_VIEW
@@ -76,7 +76,7 @@ enum Permission {
   MODERATORS_VIEW
   MODERATORS_MANAGE
 
-  // Options (Listing Types, Amenities, Nearby Tags)
+  // Options (Car Brands, Car Models, Car Types, Car Features, Car Tags)
   OPTIONS_VIEW
   OPTIONS_MANAGE
 
@@ -93,13 +93,13 @@ enum Permission {
 /// Permissions assignable to dealer staff members
 enum DealerStaffPermission {
   DASHBOARD_VIEW
-  PROPERTY_LISTINGS_VIEW
-  PROPERTY_DETAILS_VIEW
-  PROPERTY_EDIT
-  PROPERTY_ADD
-  PROPERTY_FEATURE
-  PROPERTY_MARK_SOLD
-  PROPERTY_PAYMENT
+  CAR_LISTINGS_VIEW
+  CAR_DETAILS_VIEW
+  CAR_EDIT
+  CAR_ADD
+  CAR_FEATURE
+  CAR_MARK_SOLD
+  CAR_PAYMENT
   STAFF_VIEW
   STAFF_ADD
   STAFF_EDIT
@@ -191,7 +191,7 @@ enum VisitStatus {
 enum FeaturedPlacementLocation {
   HOME_PAGE
   LISTING_PAGE
-  PROPERTY_DETAIL_PAGE
+  CAR_DETAIL_PAGE
 }
 
 enum TrackingLogType {
@@ -248,23 +248,40 @@ enum InvoiceStatus {
   FREE
 }
 
+/// Gearbox type of a car listing
+enum TransmissionType {
+  AUTOMATIC
+  MANUAL
+}
+
+/// Fuel type of a car listing
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  ELECTRIC
+}
+
+/// Condition of a car listing
+enum CarCondition {
+  NEW
+  USED
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Amenities & Nearby Tag constants are stored as String[] on the model.
-// The allowed values are enforced in the application layer (DTOs / service).
+// Car Features & Car Tag constants are stored as String[] via relations below.
+// The allowed values are enforced in the application layer (DTOs / service),
+// backed by the admin-manageable option tables (CarFeatureOption, CarTagOption).
 //
-// AMENITIES (all types):
-//   Swimming Pool, Gym / Fitness Center, Parking, Covered Parking, Garden,
-//   Balcony, Terrace, Maid's Room, Storage Room, Central A/C, Built-in Wardrobes,
-//   Security / CCTV, Elevator, Intercom, Pets Allowed, BBQ Area, Kids Play Area,
-//   Sauna / Steam Room, Jacuzzi, Private Beach Access, Concierge Service,
-//   Smart Home System, Solar Panels, EV Charging Station, Shared Gym,
-//   Shared Pool, Satellite / Cable TV, Broadband Internet, Mosque,
-//   Supermarket Inside Community, Retail Shops, Conference Room (Commercial)
+// CAR FEATURES (examples, admin-manageable):
+//   Sunroof, Leather Seats, Navigation System, Bluetooth, Cruise Control,
+//   Backup Camera, Alloy Wheels, Keyless Entry, Parking Sensors, Heated Seats,
+//   Third Row Seating, Apple CarPlay / Android Auto, Lane Assist,
+//   Blind Spot Monitor, Ventilated Seats, Panoramic Roof, Premium Sound System
 //
-// NEARBY TAGS:
-//   school, university, hospital, clinic, pharmacy, mosque, church,
-//   park, beach, mall, supermarket, metro, bus_stop, airport,
-//   corniche, sports_complex, hotel, restaurant, government_office
+// CAR TAGS (examples, admin-manageable):
+//   Single Owner, Accident-Free, GCC Spec, Under Warranty, Certified Pre-Owned,
+//   Imported, Full Service History, No Paint Work, Agency Maintained
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -292,8 +309,8 @@ model User {
 
   moderatorProfile   ModeratorProfile?   @relation("ModeratorUser")
   createdModerators  ModeratorProfile[]  @relation("CreatedByAdmin")
-  listings           Listing[]
-  listingReviews     ListingReview[]
+  carListings        CarListing[]
+  carListingReviews  CarListingReview[]
   dealerProfile      DealerProfile?
   dealerApplication  DealerApplication?  @relation("ApprovedDealerUser")
   applicationReviews ApplicationReview[]
@@ -313,8 +330,8 @@ model User {
 
   // Wishlist and Visits relations
   wishlists       Wishlist[]
-  visitsAsVisitor PropertyVisit[] @relation("VisitVisitor")
-  visitsAsOwner   PropertyVisit[] @relation("VisitOwner")
+  visitsAsVisitor CarVisit[] @relation("VisitVisitor")
+  visitsAsOwner   CarVisit[] @relation("VisitOwner")
 
   // Featured listing relations
   featuredBoostsAdded FeaturedSubscription[] @relation("AdminFeaturedBoosts")
@@ -332,8 +349,8 @@ model User {
   notifications Notification[]
 
   // Bulk listing upload draft relations
-  listingDraftsAsAgency  ListingDraft[] @relation("ListingDraftAgency")
-  listingDraftsAsUploader ListingDraft[] @relation("ListingDraftUploader")
+  listingDraftsAsAgency   CarListingDraft[] @relation("ListingDraftAgency")
+  listingDraftsAsUploader CarListingDraft[] @relation("ListingDraftUploader")
 
   @@map("users")
 }
@@ -429,7 +446,7 @@ model DealerProfile {
   reraNumber   String?
   address      String?
   city         String?
-  country      String  @default("Qatar")
+  country      String  @default("Saudi Arabia")
   website      String?
   description  String?
   facebook     String?
@@ -462,7 +479,7 @@ model DealerApplication {
   reraNumber         String?
   address            String?
   city               String?
-  country            String  @default("Qatar")
+  country            String  @default("Saudi Arabia")
   website            String?
   description        String?
   additionalContacts Json?
@@ -513,71 +530,73 @@ model ApplicationReview {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Listing (enhanced)
+// Car Listing (enhanced)
 // ─────────────────────────────────────────────────────────────────────────────
 
-model Listing {
+model CarListing {
   id String @id @default(cuid())
 
   // ── Core ──────────────────────────────────────────────────────────────────
-  propertyName  String
+  title         String
   referenceCode String?           @unique
   slug          String?           @unique
   description   String?
   purpose       ListingPurpose    @default(SALE)
-  typeId        String
-  type          ListingTypeOption @relation(fields: [typeId], references: [id])
+  modelId       String
+  model         CarModelOption    @relation(fields: [modelId], references: [id])
+  brandId       String
+  brand         CarBrandOption    @relation(fields: [brandId], references: [id])
 
   // ── GPS & Spam Detection ──────────────────────────────────────────────────
   latitude             Float?
   longitude            Float?
-  /// Flagged when another listing with same name exists within 50 m
+  /// Flagged when another listing with same title exists within 50 m
   isPotentialDuplicate Boolean @default(false)
   /// CUID of the suspected original listing (set by service during spam check)
   duplicateOfId        String?
 
-  // ── Common Property Details ───────────────────────────────────────────────
-  bedrooms      Int?
-  bathrooms     Int?
-  area          Float? // sqm
-  livingRooms   Int?
-  parkingSpaces Int?
-  floorNumber   Int?
-  totalFloors   Int?
-  yearBuilt     Int?
-  furnishingId  String?
-  furnishing    FurnishingOption? @relation(fields: [furnishingId], references: [id])
+  // ── Common Car Details ────────────────────────────────────────────────────
+  modelYear       Int?
+  mileage         Float? // km driven
+  transmission    TransmissionType?
+  fuelType        FuelType?
+  condition       CarCondition      @default(USED)
+  exteriorColor   String?
+  interiorColor   String?
+  cylinders       Int?
+  doors           Int?
+  /// Vehicle Identification Number
+  vin             String?           @unique
+  carTypeId       String?
+  carType         CarTypeOption?    @relation(fields: [carTypeId], references: [id])
 
-  // ── Type-Specific Extra Properties (stored as JSON) ───────────────────────
-  /// Villa extras: gardenArea(sqm), privatePool(bool), privateGym(bool), driverRoom(bool), outdoorKitchen(bool)
-  /// Apartment extras: buildingAmenities([]), viewType(string), serviceChargePerSqm(float)
-  /// Townhouse extras: gardenArea(sqm), rooftopTerrace(bool), basement(bool)
-  /// Penthouse extras: privateTerrace(sqm), privatePool(bool), skyLounge(bool)
-  /// Studio extras: loftStyle(bool), mezzanineLevel(bool)
-  /// Commercial extras: officeGrade(string), numberOfUnits(int), annualServiceCharge(float), zoning(string), fitOutStatus(string)
-  /// Land extras: plotArea(sqm), roadFrontage(float), zoningType(string), buildPermitAvailable(bool), utilityConnected(bool)
+  // ── Body-Type-Specific Extra Properties (stored as JSON) ──────────────────
+  /// SUV extras: driveType(2WD/4WD/AWD), seatingCapacity(int), groundClearanceMm(float)
+  /// Sedan extras: trunkCapacityLiters(float)
+  /// Pickup extras: bedLengthMeters(float), towingCapacityKg(float)
+  /// Van extras: seatingCapacity(int), cargoVolumeLiters(float)
+  /// Convertible extras: roofType(string)
+  /// Electric/Hybrid extras: batteryRangeKm(float), chargeTimeHours(float)
   extraProperties Json?
 
   // ── Price ─────────────────────────────────────────────────────────────────
   price           Float
   priceNegotiable Boolean @default(false)
 
-  // ── Qatar Address ─────────────────────────────────────────────────────────
+  // ── Saudi Arabia Address ───────────────────────────────────────────────────
   addressLine1   String?
   addressLine2   String?
-  areaName       String? // e.g. "West Bay", "The Pearl", "Lusail"
-  municipalityId String?
-  municipality   MunicipalityOption? @relation(fields: [municipalityId], references: [id])
-  country        String              @default("Qatar")
+  areaName       String? // e.g. "Al Olaya", "King Fahd Road", "Jeddah Corniche"
+  country        String  @default("Saudi Arabia")
 
   // ── Contact ───────────────────────────────────────────────────────────────
   contactPhone    String?
   contactWhatsapp String?
   contactVerified Boolean @default(false)
 
-  // ── Amenities & Tags ──────────────────────────────────────────────────────
-  amenities     AmenityOption[]
-  nearbyTags    NearbyTagOption[]
+  // ── Features & Tags ───────────────────────────────────────────────────────
+  features      CarFeatureOption[]
+  tags          CarTagOption[]
   /// Free-text additional info
   otherFeatures String?
 
@@ -589,7 +608,7 @@ model Listing {
   /// Standalone PaymentIntent created alongside the Checkout Session, for mobile native payment
   /// (Checkout Session's own PaymentIntent isn't reliably available until payment completes)
   stripePaymentIntentId String? @unique
-  /// Amount actually charged for a pay-per-listing submission (QAR), set once Stripe confirms payment
+  /// Amount actually charged for a pay-per-listing submission (SAR), set once Stripe confirms payment
   paidAmount      Float?
   /// Timestamp the listing was marked SOLD (used for admin sales analytics)
   soldAt          DateTime?
@@ -597,15 +616,15 @@ model Listing {
   // ── Relations ─────────────────────────────────────────────────────────────
   createdById           String
   createdBy             User                   @relation(fields: [createdById], references: [id])
-  photos                ListingPhoto[]
-  reviews               ListingReview[]
+  photos                CarListingPhoto[]
+  reviews               CarListingReview[]
   conversations         ChatConversation[]
   wishlistedBy          Wishlist[]
-  visits                PropertyVisit[]
+  visits                CarVisit[]
   featuredSubscriptions FeaturedSubscription[]
-  trackingLogs          ListingTrackingLog[]
+  trackingLogs          CarListingTrackingLog[]
   /// Set if this listing was created from a bulk-upload draft
-  sourceDraft           ListingDraft?
+  sourceDraft           CarListingDraft?
 
   impressionsCount    Int @default(0)
   viewsCount          Int @default(0)
@@ -616,40 +635,40 @@ model Listing {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("listings")
+  @@map("car_listings")
 }
 
-model ListingTrackingLog {
+model CarListingTrackingLog {
   id        String          @id @default(cuid())
   listingId String
-  listing   Listing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing   CarListing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
   deviceId  String
   type      TrackingLogType
   createdAt DateTime        @default(now())
 
   @@index([listingId, deviceId, type, createdAt])
-  @@map("listing_tracking_logs")
+  @@map("car_listing_tracking_logs")
 }
 
 /// Individual photo with sort order for a listing
-model ListingPhoto {
-  id         String   @id @default(cuid())
+model CarListingPhoto {
+  id         String     @id @default(cuid())
   listingId  String
-  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing    CarListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   url        String
   minioKey   String?
   caption    String?
-  sortOrder  Int      @default(0)
-  uploadedAt DateTime @default(now())
+  sortOrder  Int        @default(0)
+  uploadedAt DateTime   @default(now())
 
-  @@map("listing_photos")
+  @@map("car_listing_photos")
 }
 
 /// Full audit trail — every approve / reject / resubmit / admin-edit action
-model ListingReview {
+model CarListingReview {
   id           String              @id @default(cuid())
   listingId    String
-  listing      Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing      CarListing          @relation(fields: [listingId], references: [id], onDelete: Cascade)
   action       ListingReviewAction
   /// Human-readable note (rejection reason, moderator note, etc.)
   message      String?
@@ -659,36 +678,36 @@ model ListingReview {
   reviewedBy   User?               @relation(fields: [reviewedById], references: [id])
   reviewedAt   DateTime            @default(now())
 
-  @@map("listing_reviews")
+  @@map("car_listing_reviews")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dealer Bulk Listing Upload (JSON / Excel / CSV → draft rows for review)
+// Dealer Bulk Car Listing Upload (JSON / Excel / CSV → draft rows for review)
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum ListingDraftSource {
+enum CarListingDraftSource {
   JSON
   EXCEL
   CSV
 }
 
-enum ListingDraftStatus {
+enum CarListingDraftStatus {
   /// Parsed and stored, not yet turned into a real listing
   PENDING
-  /// Consumed by POST /listings (draftId) — a real Listing now exists
+  /// Consumed by POST /listings (draftId) — a real CarListing now exists
   USED
   /// Dealer discarded it without creating a listing
   DISCARDED
 }
 
 /// One row from a dealer's bulk JSON/Excel/CSV upload, held here for review/editing
-/// before being turned into a real Listing via POST /listings { draftId }.
-model ListingDraft {
+/// before being turned into a real CarListing via POST /listings { draftId }.
+model CarListingDraft {
   id String @id @default(cuid())
 
   /// Groups every row from a single upload together
   batchId   String
-  source    ListingDraftSource
+  source    CarListingDraftSource
   /// 1-indexed row position in the uploaded file (for the dealer to locate/fix it)
   rowNumber Int
 
@@ -699,23 +718,23 @@ model ListingDraft {
   createdById  String
   createdBy    User   @relation("ListingDraftUploader", fields: [createdById], references: [id])
 
-  status ListingDraftStatus @default(PENDING)
-  /// Parsed row, shaped like CreateListingDto (propertyName, purpose, typeId, price, photos[], ...)
+  status CarListingDraftStatus @default(PENDING)
+  /// Parsed row, shaped like CreateListingDto (title, purpose, modelId, brandId, price, photos[], ...)
   data   Json
-  /// Validation problems found at parse time (missing required fields, unresolvable type/municipality, etc.)
+  /// Validation problems found at parse time (missing required fields, unresolvable model/brand, etc.)
   /// Empty array = row parsed cleanly. Dealers can still submit — server re-validates at creation time.
   errors Json?
 
   /// Set once this draft has been turned into a real listing
-  listingId String?  @unique
-  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  listingId String?     @unique
+  listing   CarListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([dealerUserId, status])
   @@index([batchId])
-  @@map("listing_drafts")
+  @@map("car_listing_drafts")
 }
 
 model OtpRecord {
@@ -753,15 +772,15 @@ model DealerStaff {
 }
 
 /// One conversation per (enquiring user + listing).
-/// Participants = enquiring user + property owner (createdBy) + dealer + all dealer staff.
+/// Participants = enquiring user + listing owner (createdBy) + dealer + all dealer staff.
 model ChatConversation {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing   CarListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation("ConversationUser", fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User       @relation("ConversationUser", fields: [userId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   messages     ChatMessage[]
   participants ChatParticipant[]
@@ -865,29 +884,29 @@ model TicketReply {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Wishlist {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  listing   CarListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
 
   @@unique([userId, listingId])
   @@map("wishlists")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Property Visits
+// Car Visits (test drive / viewing appointments)
 // ─────────────────────────────────────────────────────────────────────────────
 
-model PropertyVisit {
-  id        String  @id @default(cuid())
+model CarVisit {
+  id        String     @id @default(cuid())
   listingId String
-  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing   CarListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   visitorId String
-  visitor   User    @relation("VisitVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
+  visitor   User       @relation("VisitVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
   ownerId   String
-  owner     User    @relation("VisitOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner     User       @relation("VisitOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
   scheduledAt DateTime
   proposedAt  DateTime? // For reconfirmation
@@ -897,14 +916,14 @@ model PropertyVisit {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("property_visits")
+  @@map("car_visits")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Featured Listings
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Admin-configured plan that defines where and how long a property is featured
+/// Admin-configured plan that defines where and how long a car listing is featured
 model FeaturedPlan {
   id           String                      @id @default(cuid())
   name         String // e.g. "7-Day Multi-Location Boost"
@@ -912,7 +931,7 @@ model FeaturedPlan {
   locations    FeaturedPlacementLocation[]
   duration     FeaturedPlanDuration
   durationDays Int // 7, 20, or 30
-  price        Float // in QAR
+  price        Float // in SAR
   isActive     Boolean                     @default(true)
   createdAt    DateTime                    @default(now())
   updatedAt    DateTime                    @updatedAt
@@ -926,7 +945,7 @@ model FeaturedPlan {
 model FeaturedSubscription {
   id        String       @id @default(cuid())
   listingId String
-  listing   Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing   CarListing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
   planId    String
   plan      FeaturedPlan @relation(fields: [planId], references: [id])
 
@@ -943,7 +962,7 @@ model FeaturedSubscription {
   /// Discount % applied from dealer's active subscription plan
   discountApplied       Float?
 
-  /// Null = self-service by property owner; set when admin adds directly
+  /// Null = self-service by listing owner; set when admin adds directly
   addedByAdminId String?
   addedByAdmin   User?   @relation("AdminFeaturedBoosts", fields: [addedByAdminId], references: [id])
 
@@ -960,62 +979,66 @@ model FeaturedSubscription {
 // Dynamic Options
 // ─────────────────────────────────────────────────────────────────────────────
 
-model AmenityOption {
-  id        String    @id @default(cuid())
-  title     String    @unique
+/// Car features (admin-manageable): Sunroof, Leather Seats, Navigation System, ...
+model CarFeatureOption {
+  id        String       @id @default(cuid())
+  title     String       @unique
   image     String?
-  listings  Listing[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  listings  CarListing[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  @@map("amenity_options")
+  @@map("car_feature_options")
 }
 
-model NearbyTagOption {
-  id        String    @id @default(cuid())
-  title     String    @unique
+/// Car tags (admin-manageable): Single Owner, Accident-Free, GCC Spec, ...
+model CarTagOption {
+  id        String       @id @default(cuid())
+  title     String       @unique
   image     String?
-  listings  Listing[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  listings  CarListing[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  @@map("nearby_tag_options")
+  @@map("car_tag_options")
 }
 
-model FurnishingOption {
-  id        String    @id @default(cuid())
-  title     String    @unique
-  listings  Listing[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+/// Car body type (admin-manageable): SUV, Sedan, Hatchback, Coupe, Pickup, Van, ...
+model CarTypeOption {
+  id        String       @id @default(cuid())
+  title     String       @unique
+  listings  CarListing[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  @@map("furnishing_options")
+  @@map("car_type_options")
 }
 
-model ListingTypeOption {
-  id        String    @id @default(cuid())
-  title     String    @unique
+/// Car model (admin-manageable): Camry, Corolla, Land Cruiser, Civic, ...
+model CarModelOption {
+  id        String       @id @default(cuid())
+  title     String       @unique
   image     String?
-  listings  Listing[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  listings  CarListing[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  @@map("listing_type_options")
+  @@map("car_model_options")
 }
 
-model MunicipalityOption {
-  id        String    @id @default(cuid())
-  name      String    @unique
+/// Car brand (admin-manageable): Toyota, Honda, Nissan, ... "Popular brands" shown on the home page
+/// are the ones flagged `isPopular`.
+model CarBrandOption {
+  id        String       @id @default(cuid())
+  name      String       @unique
   image     String?
-  latitude  Float?
-  longitude Float?
-  isPopular Boolean   @default(false)
-  isActive  Boolean   @default(true)
-  listings  Listing[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  isPopular Boolean      @default(false)
+  isActive  Boolean      @default(true)
+  listings  CarListing[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  @@map("municipality_options")
+  @@map("car_brand_options")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1030,7 +1053,7 @@ model DealerSubscriptionPlan {
   maxListings  Int    @default(0)
   /// Plan validity in days
   validityDays Int
-  /// Price in QAR (0 = free plan)
+  /// Price in SAR (0 = free plan)
   price        Float  @default(0)
 
   /// Number of free listings granted instantly upon purchase
@@ -1081,7 +1104,7 @@ model DealerSubscription {
 // Invoices
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// One common, Qatar-formatted invoice/receipt record for every billable action in the
+/// One common, Saudi-formatted invoice/receipt record for every billable action in the
 /// app — a listing publication payment, a featured-listing boost, or a dealer subscription
 /// plan purchase. Generated automatically the moment each of those actions completes
 /// (whether actually charged via Stripe, or covered by free quota / a full discount /
@@ -1107,19 +1130,19 @@ model Invoice {
   billedToTradeNumber String?
   billedToAddress     String?
 
-  /// Invoice title, e.g. "Featured Listing — The Pearl Villa"
+  /// Invoice title, e.g. "Featured Listing — 2022 Toyota Camry"
   description String
   /// Structured breakdown for frontend receipt rendering: [{ description, quantity, unitPrice, amount }]
   lineItems   Json
 
-  /// id of the Listing / FeaturedSubscription / DealerSubscription this invoice documents
+  /// id of the CarListing / FeaturedSubscription / DealerSubscription this invoice documents
   referenceId String
 
   subtotal      Float
   vatRate       Float     @default(0)
   vatAmount     Float     @default(0)
   totalAmount   Float
-  currency      String    @default("QAR")
+  currency      String    @default("SAR")
   paymentMethod String    @default("Stripe")
   paidAt        DateTime?
 

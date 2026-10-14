@@ -5,7 +5,7 @@ import { IsInt, IsNumber, IsOptional, Min } from 'class-validator';
 export class UpdateListingSettingsDto {
   @ApiPropertyOptional({
     description:
-      'Price (QAR) charged per listing once a user/dealer is outside their free-listing quota. ' +
+      'Price (SAR) charged per listing once a user/dealer is outside their free-listing quota. ' +
       "Dealers get this discounted by their active subscription's `currentListingDiscountPercent`.",
     example: 150,
   })
