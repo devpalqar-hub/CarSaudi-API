@@ -354,6 +354,9 @@ export class ListingsService implements OnModuleInit {
       where: { id: userId },
       select: { phone: true, role: true },
     });
+    if (!creator) {
+      throw new NotFoundException(`User with ID "${userId}" not found.`);
+    }
 
     const contactToVerify = rest.contactPhone || rest.contactWhatsapp;
     let contactVerified = false;
@@ -361,9 +364,113 @@ export class ListingsService implements OnModuleInit {
       const check = await this.checkListingPhoneVerification(contactToVerify);
       contactVerified = check.isVerified;
     } else {
-      if (creator?.phone) {
+      if (creator.phone) {
         const check = await this.checkListingPhoneVerification(creator.phone);
         contactVerified = check.isVerified;
+      }
+    }
+
+    // Validate brand existence
+    if (rest.brandId) {
+      const brand = await this.prisma.carBrandOption.findUnique({
+        where: { id: rest.brandId },
+        select: { id: true },
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          `Brand with ID "${rest.brandId}" does not exist.`,
+        );
+      }
+    }
+
+    // Validate model existence
+    if (rest.modelId) {
+      const model = await this.prisma.carModelOption.findUnique({
+        where: { id: rest.modelId },
+        select: { id: true },
+      });
+      if (!model) {
+        throw new BadRequestException(
+          `Model with ID "${rest.modelId}" does not exist.`,
+        );
+      }
+    }
+
+    // Validate car body type existence
+    const parsedCarTypeId = parseRelationId(rest.carTypeId);
+    if (parsedCarTypeId) {
+      const carType = await this.prisma.carTypeOption.findUnique({
+        where: { id: parsedCarTypeId },
+        select: { id: true },
+      });
+      if (!carType) {
+        throw new BadRequestException(
+          `Car body type with ID "${parsedCarTypeId}" does not exist.`,
+        );
+      }
+    }
+
+    // Validate VIN uniqueness if provided
+    if (rest.vin && typeof rest.vin === 'string' && rest.vin.trim()) {
+      const trimmedVin = rest.vin.trim();
+      const existingVin = await this.prisma.carListing.findUnique({
+        where: { vin: trimmedVin },
+        select: { id: true },
+      });
+      if (existingVin) {
+        throw new BadRequestException(
+          `A car listing with VIN "${trimmedVin}" already exists.`,
+        );
+      }
+    }
+
+    // Deduplicate and validate features
+    const rawFeatures = Array.isArray(rest.features) ? rest.features : [];
+    const featureIds = Array.from(
+      new Set(
+        rawFeatures
+          .map((id) => (typeof id === 'string' ? id.trim() : ''))
+          .filter(Boolean),
+      ),
+    );
+
+    if (featureIds.length > 0) {
+      const existingFeatures = await this.prisma.carFeatureOption.findMany({
+        where: { id: { in: featureIds } },
+        select: { id: true },
+      });
+      const existingFeatureIds = new Set(existingFeatures.map((f) => f.id));
+      const missingFeatures = featureIds.filter(
+        (id) => !existingFeatureIds.has(id),
+      );
+      if (missingFeatures.length > 0) {
+        throw new BadRequestException(
+          `Invalid feature ID(s) provided: ${missingFeatures.join(', ')}.`,
+        );
+      }
+    }
+
+    // Deduplicate and validate tags
+    const rawTags = Array.isArray(rest.tags) ? rest.tags : [];
+    const tagIds = Array.from(
+      new Set(
+        rawTags
+          .map((id) => (typeof id === 'string' ? id.trim() : ''))
+          .filter(Boolean),
+      ),
+    );
+
+    if (tagIds.length > 0) {
+      const existingTags = await this.prisma.carTagOption.findMany({
+        where: { id: { in: tagIds } },
+        select: { id: true },
+      });
+      const existingTagIds = new Set(existingTags.map((t) => t.id));
+      const missingTags = tagIds.filter((id) => !existingTagIds.has(id));
+      if (missingTags.length > 0) {
+        throw new BadRequestException(
+          `Invalid tag ID(s) provided: ${missingTags.join(', ')}.`,
+        );
       }
     }
 
@@ -394,8 +501,8 @@ export class ListingsService implements OnModuleInit {
             interiorColor: rest.interiorColor ?? null,
             cylinders: rest.cylinders ?? null,
             doors: rest.doors ?? null,
-            vin: rest.vin ?? null,
-            carTypeId: parseRelationId(rest.carTypeId),
+            vin: rest.vin?.trim() || null,
+            carTypeId: parsedCarTypeId,
             extraProperties:
               (rest.extraProperties as Prisma.InputJsonValue) ??
               Prisma.JsonNull,
@@ -409,10 +516,10 @@ export class ListingsService implements OnModuleInit {
             contactWhatsapp: rest.contactWhatsapp ?? null,
             contactVerified,
             features: {
-              connect: (rest.features ?? []).map((id) => ({ id })),
+              connect: featureIds.map((id) => ({ id })),
             },
             tags: {
-              connect: (rest.tags ?? []).map((id) => ({ id })),
+              connect: tagIds.map((id) => ({ id })),
             },
             otherFeatures: rest.otherFeatures ?? null,
             createdById: userId,
@@ -445,10 +552,33 @@ export class ListingsService implements OnModuleInit {
         return created;
       })
       .catch((error: any) => {
-        if (error && error.code === 'P2003') {
-          throw new BadRequestException('Invalid reference ID provided.');
+        if (
+          error instanceof BadRequestException ||
+          error instanceof NotFoundException
+        ) {
+          throw error;
         }
-        throw error;
+        if (error && error.code === 'P2002') {
+          const target = Array.isArray(error.meta?.target)
+            ? error.meta.target.join(', ')
+            : error.meta?.target || 'field';
+          throw new BadRequestException(
+            `A listing with this ${target} already exists.`,
+          );
+        }
+        if (error && error.code === 'P2003') {
+          throw new BadRequestException(
+            'Invalid reference ID provided (e.g., brandId, modelId, or carTypeId does not exist).',
+          );
+        }
+        if (error && error.code === 'P2025') {
+          throw new BadRequestException(
+            'One or more referenced records (e.g., features, tags, or options) were not found.',
+          );
+        }
+        throw new BadRequestException(
+          error?.message || 'Failed to create listing due to invalid data.',
+        );
       });
 
     if (draftId) {
@@ -1461,6 +1591,115 @@ export class ListingsService implements OnModuleInit {
 
     const { photos, ...rest } = dto;
 
+    // Validate brand existence if updated
+    if (rest.brandId !== undefined) {
+      const brand = await this.prisma.carBrandOption.findUnique({
+        where: { id: rest.brandId },
+        select: { id: true },
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          `Brand with ID "${rest.brandId}" does not exist.`,
+        );
+      }
+    }
+
+    // Validate model existence if updated
+    if (rest.modelId !== undefined) {
+      const model = await this.prisma.carModelOption.findUnique({
+        where: { id: rest.modelId },
+        select: { id: true },
+      });
+      if (!model) {
+        throw new BadRequestException(
+          `Model with ID "${rest.modelId}" does not exist.`,
+        );
+      }
+    }
+
+    // Validate car body type existence if updated
+    const parsedCarTypeId =
+      rest.carTypeId !== undefined ? parseRelationId(rest.carTypeId) : undefined;
+    if (parsedCarTypeId) {
+      const carType = await this.prisma.carTypeOption.findUnique({
+        where: { id: parsedCarTypeId },
+        select: { id: true },
+      });
+      if (!carType) {
+        throw new BadRequestException(
+          `Car body type with ID "${parsedCarTypeId}" does not exist.`,
+        );
+      }
+    }
+
+    // Validate VIN uniqueness if updated
+    if (rest.vin !== undefined && typeof rest.vin === 'string' && rest.vin.trim()) {
+      const trimmedVin = rest.vin.trim();
+      const existingVin = await this.prisma.carListing.findFirst({
+        where: { vin: trimmedVin, id: { not: id } },
+        select: { id: true },
+      });
+      if (existingVin) {
+        throw new BadRequestException(
+          `A car listing with VIN "${trimmedVin}" already exists.`,
+        );
+      }
+    }
+
+    // Deduplicate and validate features if updated
+    let featureIds: string[] | undefined;
+    if (rest.features !== undefined) {
+      const rawFeatures = Array.isArray(rest.features) ? rest.features : [];
+      featureIds = Array.from(
+        new Set(
+          rawFeatures
+            .map((fid) => (typeof fid === 'string' ? fid.trim() : ''))
+            .filter(Boolean),
+        ),
+      );
+      if (featureIds.length > 0) {
+        const existingFeatures = await this.prisma.carFeatureOption.findMany({
+          where: { id: { in: featureIds } },
+          select: { id: true },
+        });
+        const existingFeatureIds = new Set(existingFeatures.map((f) => f.id));
+        const missingFeatures = featureIds.filter(
+          (fid) => !existingFeatureIds.has(fid),
+        );
+        if (missingFeatures.length > 0) {
+          throw new BadRequestException(
+            `Invalid feature ID(s) provided: ${missingFeatures.join(', ')}.`,
+          );
+        }
+      }
+    }
+
+    // Deduplicate and validate tags if updated
+    let tagIds: string[] | undefined;
+    if (rest.tags !== undefined) {
+      const rawTags = Array.isArray(rest.tags) ? rest.tags : [];
+      tagIds = Array.from(
+        new Set(
+          rawTags
+            .map((tid) => (typeof tid === 'string' ? tid.trim() : ''))
+            .filter(Boolean),
+        ),
+      );
+      if (tagIds.length > 0) {
+        const existingTags = await this.prisma.carTagOption.findMany({
+          where: { id: { in: tagIds } },
+          select: { id: true },
+        });
+        const existingTagIds = new Set(existingTags.map((t) => t.id));
+        const missingTags = tagIds.filter((tid) => !existingTagIds.has(tid));
+        if (missingTags.length > 0) {
+          throw new BadRequestException(
+            `Invalid tag ID(s) provided: ${missingTags.join(', ')}.`,
+          );
+        }
+      }
+    }
+
     const updated = await this.prisma
       .$transaction(async (tx) => {
         const result = await tx.carListing.update({
@@ -1493,9 +1732,11 @@ export class ListingsService implements OnModuleInit {
             }),
             ...(rest.cylinders !== undefined && { cylinders: rest.cylinders }),
             ...(rest.doors !== undefined && { doors: rest.doors }),
-            ...(rest.vin !== undefined && { vin: rest.vin }),
+            ...(rest.vin !== undefined && {
+              vin: rest.vin?.trim() || null,
+            }),
             ...(rest.carTypeId !== undefined && {
-              carTypeId: parseRelationId(rest.carTypeId),
+              carTypeId: parsedCarTypeId ?? null,
             }),
             ...(rest.extraProperties !== undefined && {
               extraProperties: rest.extraProperties as Prisma.InputJsonValue,
@@ -1524,11 +1765,11 @@ export class ListingsService implements OnModuleInit {
               rest.contactVerified !== undefined && {
                 contactVerified: rest.contactVerified,
               }),
-            ...(rest.features !== undefined && {
-              features: { set: rest.features.map((id) => ({ id })) },
+            ...(featureIds !== undefined && {
+              features: { set: featureIds.map((fid) => ({ id: fid })) },
             }),
-            ...(rest.tags !== undefined && {
-              tags: { set: rest.tags.map((id) => ({ id })) },
+            ...(tagIds !== undefined && {
+              tags: { set: tagIds.map((tid) => ({ id: tid })) },
             }),
             ...(rest.otherFeatures !== undefined && {
               otherFeatures: rest.otherFeatures,
@@ -1567,12 +1808,34 @@ export class ListingsService implements OnModuleInit {
         return result;
       })
       .catch((error: any) => {
+        if (
+          error instanceof BadRequestException ||
+          error instanceof NotFoundException ||
+          error instanceof ForbiddenException
+        ) {
+          throw error;
+        }
+        if (error && error.code === 'P2002') {
+          const target = Array.isArray(error.meta?.target)
+            ? error.meta.target.join(', ')
+            : error.meta?.target || 'field';
+          throw new BadRequestException(
+            `A listing with this ${target} already exists.`,
+          );
+        }
         if (error && error.code === 'P2003') {
           throw new BadRequestException(
             'Invalid reference ID provided (e.g., carTypeId, brandId, or modelId).',
           );
         }
-        throw error;
+        if (error && error.code === 'P2025') {
+          throw new BadRequestException(
+            'One or more referenced records (e.g. features or tags) do not exist.',
+          );
+        }
+        throw new BadRequestException(
+          error?.message || 'Failed to update listing due to invalid data.',
+        );
       });
 
     return updated;

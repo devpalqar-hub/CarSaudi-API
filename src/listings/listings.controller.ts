@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Param,
   Patch,
@@ -168,8 +170,18 @@ export class ListingsController {
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  create(@Body() dto: CreateListingDto, @CurrentUser('id') userId: string) {
-    return this.listingsService.create(dto, userId);
+  async create(@Body() dto: CreateListingDto, @CurrentUser('id') userId: string) {
+    try {
+      return await this.listingsService.create(dto, userId);
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        error?.message ||
+          'Failed to create car listing. Please check the provided data.',
+      );
+    }
   }
 
   // ─── Pay for a listing pending payment ─────────────────────────────────────
