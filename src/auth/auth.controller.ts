@@ -318,7 +318,7 @@ export class AuthController {
         },
       },
     },
-  })
+  })``
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({
     status: 403,
