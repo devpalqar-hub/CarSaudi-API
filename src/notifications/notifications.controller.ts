@@ -22,25 +22,36 @@ import { QueryNotificationDto } from './dto/query-notification.dto';
 import { NotificationsService } from './notifications.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// In-app notification feed — dealer / dealer-staff facing.
-// Every push notification sent via NotificationsService.sendToUser(s)() also lands
-// here (see NotificationsService.persistInApp), so this is the durable, mark-as-read
-// list behind the app's notification bell.
+// In-app notification feed — shared by every role (dealer / dealer-staff / user /
+// admin). Every push notification sent via NotificationsService.sendToUser(s)()
+// also lands here (see NotificationsService.persistInApp), so this is the
+// durable, mark-as-read list behind each account's notification bell. All
+// endpoints are scoped to the authenticated caller (`CurrentUser('id')`), so
+// each role only ever sees its own notifications.
 // ─────────────────────────────────────────────────────────────────────────────
+
+const NOTIFICATION_ROLES = [
+  UserRole.DEALER,
+  UserRole.DEALER_STAFF,
+  UserRole.USER,
+  UserRole.SUPER_ADMIN,
+  UserRole.MODERATOR,
+];
 
 @ApiTags('Notifications')
 @Controller('notifications')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.DEALER, UserRole.DEALER_STAFF)
+@Roles(...NOTIFICATION_ROLES)
 @ApiBearerAuth('JWT-auth')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
   @ApiOperation({
-    summary: 'Dealer: List my in-app notifications',
+    summary: 'List my in-app notifications',
     description:
-      'Paginated, newest first. Filter by `isRead` to view only read/unread notifications.',
+      'Paginated, newest first. Filter by `isRead` to view only read/unread notifications. ' +
+      'Available to dealer, dealer-staff, user and admin (super admin / moderator) accounts.',
   })
   @ApiResponse({
     status: 200,
@@ -54,7 +65,7 @@ export class NotificationsController {
   }
 
   @Get('unread-count')
-  @ApiOperation({ summary: 'Dealer: Get my unread notification count' })
+  @ApiOperation({ summary: 'Get my unread notification count' })
   @ApiResponse({
     status: 200,
     description: 'Unread count',
@@ -65,7 +76,7 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
-  @ApiOperation({ summary: 'Dealer: Mark a single notification as read' })
+  @ApiOperation({ summary: 'Mark a single notification as read' })
   @ApiParam({ name: 'id', description: 'Notification CUID' })
   @ApiResponse({ status: 200, description: 'Notification marked as read' })
   @ApiResponse({ status: 404, description: 'Notification not found' })
@@ -74,7 +85,7 @@ export class NotificationsController {
   }
 
   @Patch('read-all')
-  @ApiOperation({ summary: 'Dealer: Mark all my notifications as read' })
+  @ApiOperation({ summary: 'Mark all my notifications as read' })
   @ApiResponse({ status: 200, description: 'All notifications marked as read' })
   markAllAsRead(@CurrentUser('id') userId: string) {
     return this.notificationsService.markAllAsRead(userId);
