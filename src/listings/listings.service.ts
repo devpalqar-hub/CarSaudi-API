@@ -86,7 +86,7 @@ export const LISTING_SELECT = {
   description: true,
   purpose: true,
   modelId: true,
-  model: { select: { id: true, title: true, image: true } },
+  model: { select: { id: true, title: true, image: true, brandId: true } },
   latitude: true,
   longitude: true,
   isPotentialDuplicate: true,
@@ -383,15 +383,20 @@ export class ListingsService implements OnModuleInit {
       }
     }
 
-    // Validate model existence
+    // Validate model existence and brand relationship
     if (rest.modelId) {
       const model = await this.prisma.carModelOption.findUnique({
         where: { id: rest.modelId },
-        select: { id: true },
+        select: { id: true, brandId: true },
       });
       if (!model) {
         throw new BadRequestException(
           `Model with ID "${rest.modelId}" does not exist.`,
+        );
+      }
+      if (rest.brandId && model.brandId !== rest.brandId) {
+        throw new BadRequestException(
+          `The selected car model does not belong to the selected car brand.`,
         );
       }
     }
@@ -1604,15 +1609,31 @@ export class ListingsService implements OnModuleInit {
       }
     }
 
-    // Validate model existence if updated
+    // Validate model existence and brand relationship if updated
+    const targetBrandId = rest.brandId ?? listing.brandId;
     if (rest.modelId !== undefined) {
       const model = await this.prisma.carModelOption.findUnique({
         where: { id: rest.modelId },
-        select: { id: true },
+        select: { id: true, brandId: true },
       });
       if (!model) {
         throw new BadRequestException(
           `Model with ID "${rest.modelId}" does not exist.`,
+        );
+      }
+      if (targetBrandId && model.brandId !== targetBrandId) {
+        throw new BadRequestException(
+          `The selected car model does not belong to the car brand.`,
+        );
+      }
+    } else if (rest.brandId !== undefined) {
+      const model = await this.prisma.carModelOption.findUnique({
+        where: { id: listing.modelId },
+        select: { id: true, brandId: true },
+      });
+      if (model && model.brandId !== rest.brandId) {
+        throw new BadRequestException(
+          `The existing listing model does not belong to the newly selected brand. Please update modelId as well.`,
         );
       }
     }
@@ -2217,6 +2238,10 @@ export class ListingsService implements OnModuleInit {
         id: true,
         title: true,
         image: true,
+        brandId: true,
+        brand: {
+          select: { id: true, name: true },
+        },
         _count: {
           select: {
             listings: {
@@ -2225,6 +2250,7 @@ export class ListingsService implements OnModuleInit {
           },
         },
       },
+      orderBy: { title: 'asc' },
     });
 
     const carModels = carModelsRaw.map((model) => {
@@ -2318,6 +2344,43 @@ export class ListingsService implements OnModuleInit {
       totalPopularBrandsCount: data.length,
       totalActiveBrandsCount,
     };
+  }
+
+  // ─── Brand Models ───────────────────────────────────────────────────────────
+
+  async getModelsByBrand(brandId: string) {
+    const brand = await this.prisma.carBrandOption.findUnique({
+      where: { id: brandId },
+      select: { id: true, name: true },
+    });
+    if (!brand) {
+      throw new NotFoundException(
+        `Car brand with ID "${brandId}" does not exist.`,
+      );
+    }
+
+    const modelsRaw = await this.prisma.carModelOption.findMany({
+      where: { brandId },
+      select: {
+        id: true,
+        title: true,
+        image: true,
+        brandId: true,
+        _count: {
+          select: {
+            listings: {
+              where: { status: ListingStatus.ACTIVE },
+            },
+          },
+        },
+      },
+      orderBy: { title: 'asc' },
+    });
+
+    return modelsRaw.map((model) => {
+      const { _count, ...rest } = model;
+      return { ...rest, listingCount: _count.listings };
+    });
   }
 
   // ─── Nearby Listings ───────────────────────────────────────────────────────

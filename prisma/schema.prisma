@@ -1016,27 +1016,32 @@ model CarTypeOption {
 
 /// Car model (admin-manageable): Camry, Corolla, Land Cruiser, Civic, ...
 model CarModelOption {
-  id        String       @id @default(cuid())
-  title     String       @unique
+  id        String         @id @default(cuid())
+  title     String
   image     String?
+  brandId   String
+  brand     CarBrandOption @relation(fields: [brandId], references: [id], onDelete: Cascade)
   listings  CarListing[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
+  @@unique([brandId, title])
+  @@index([brandId])
   @@map("car_model_options")
 }
 
 /// Car brand (admin-manageable): Toyota, Honda, Nissan, ... "Popular brands" shown on the home page
 /// are the ones flagged `isPopular`.
 model CarBrandOption {
-  id        String       @id @default(cuid())
-  name      String       @unique
+  id        String           @id @default(cuid())
+  name      String           @unique
   image     String?
-  isPopular Boolean      @default(false)
-  isActive  Boolean      @default(true)
+  isPopular Boolean          @default(false)
+  isActive  Boolean          @default(true)
+  models    CarModelOption[]
   listings  CarListing[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   @@map("car_brand_options")
 }

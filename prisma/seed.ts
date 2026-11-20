@@ -96,62 +96,98 @@ async function main() {
   }
   console.log('Upserted Car Tag Options');
 
-  // 5. Car Brand Options (a few flagged as popular)
-  const carBrandOptions: { name: string; isPopular: boolean }[] = [
-    { name: 'Toyota', isPopular: true },
-    { name: 'Honda', isPopular: true },
-    { name: 'Nissan', isPopular: true },
-    { name: 'Hyundai', isPopular: true },
-    { name: 'Kia', isPopular: true },
-    { name: 'Ford', isPopular: false },
-    { name: 'Chevrolet', isPopular: false },
-    { name: 'Lexus', isPopular: true },
-    { name: 'BMW', isPopular: false },
-    { name: 'Mercedes-Benz', isPopular: false },
-    { name: 'GMC', isPopular: false },
-    { name: 'Mitsubishi', isPopular: false },
+  // 5. Car Brands and their Models
+  const brandsWithModels: {
+    name: string;
+    isPopular: boolean;
+    models: string[];
+  }[] = [
+    {
+      name: 'Toyota',
+      isPopular: true,
+      models: ['Camry', 'Corolla', 'Land Cruiser', 'Hilux'],
+    },
+    {
+      name: 'Honda',
+      isPopular: true,
+      models: ['Civic', 'Accord', 'CR-V'],
+    },
+    {
+      name: 'Nissan',
+      isPopular: true,
+      models: ['Patrol', 'Altima', 'Sunny'],
+    },
+    {
+      name: 'Hyundai',
+      isPopular: true,
+      models: ['Elantra', 'Sonata', 'Tucson'],
+    },
+    {
+      name: 'Kia',
+      isPopular: true,
+      models: ['Sportage', 'Optima'],
+    },
+    {
+      name: 'Ford',
+      isPopular: false,
+      models: ['F-150', 'Explorer'],
+    },
+    {
+      name: 'Chevrolet',
+      isPopular: false,
+      models: ['Tahoe', 'Camaro'],
+    },
+    {
+      name: 'Lexus',
+      isPopular: true,
+      models: ['ES 350', 'RX 350'],
+    },
+    {
+      name: 'BMW',
+      isPopular: false,
+      models: ['3 Series', '5 Series', '7 Series', 'X5'],
+    },
+    {
+      name: 'Mercedes-Benz',
+      isPopular: false,
+      models: ['C-Class', 'E-Class', 'S-Class', 'G-Class'],
+    },
+    {
+      name: 'GMC',
+      isPopular: false,
+      models: ['Yukon', 'Sierra'],
+    },
+    {
+      name: 'Mitsubishi',
+      isPopular: false,
+      models: ['Pajero', 'Outlander'],
+    },
   ];
-  for (const brand of carBrandOptions) {
-    await prisma.carBrandOption.upsert({
-      where: { name: brand.name },
-      update: {},
-      create: { name: brand.name, isPopular: brand.isPopular },
-    });
-  }
-  console.log('Upserted Car Brand Options');
 
-  // 6. Car Model Options
-  const carModelOptions = [
-    'Camry',
-    'Corolla',
-    'Land Cruiser',
-    'Hilux',
-    'Civic',
-    'Accord',
-    'CR-V',
-    'Patrol',
-    'Altima',
-    'Sunny',
-    'Elantra',
-    'Sonata',
-    'Tucson',
-    'Sportage',
-    'Optima',
-    'F-150',
-    'Explorer',
-    'Tahoe',
-    'Camaro',
-    'ES 350',
-    'RX 350',
-  ];
-  for (const title of carModelOptions) {
-    await prisma.carModelOption.upsert({
-      where: { title },
-      update: {},
-      create: { title },
+  for (const item of brandsWithModels) {
+    const brand = await prisma.carBrandOption.upsert({
+      where: { name: item.name },
+      update: { isPopular: item.isPopular },
+      create: { name: item.name, isPopular: item.isPopular },
     });
+
+    for (const modelTitle of item.models) {
+      await prisma.carModelOption.upsert({
+        where: {
+          brandId_title: {
+            brandId: brand.id,
+            title: modelTitle,
+          },
+        },
+        update: {},
+        create: {
+          title: modelTitle,
+          brandId: brand.id,
+        },
+      });
+    }
   }
-  console.log('Upserted Car Model Options');
+  console.log('Upserted Car Brand and Model Options with relationships');
 }
 
 main()

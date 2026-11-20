@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -65,20 +65,65 @@ export class OptionsService {
     return this.prisma.carTypeOption.delete({ where: { id } });
   }
 
-  getCarModels(search?: string) {
+  getCarModels(search?: string, brandId?: string) {
     return this.prisma.carModelOption.findMany({
-      where: search
-        ? { title: { contains: search, mode: 'insensitive' } }
-        : undefined,
+      where: {
+        ...(search ? { title: { contains: search, mode: 'insensitive' } } : {}),
+        ...(brandId ? { brandId } : {}),
+      },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+      orderBy: { title: 'asc' },
     });
   }
 
-  createCarModel(dto: { title: string; image?: string }) {
-    return this.prisma.carModelOption.create({ data: dto });
+  async createCarModel(dto: { title: string; brandId: string; image?: string }) {
+    const brand = await this.prisma.carBrandOption.findUnique({
+      where: { id: dto.brandId },
+      select: { id: true },
+    });
+    if (!brand) {
+      throw new NotFoundException(`Car brand with ID "${dto.brandId}" not found`);
+    }
+    return this.prisma.carModelOption.create({
+      data: dto,
+      include: {
+        brand: {
+          select: { id: true, name: true, image: true },
+        },
+      },
+    });
   }
 
-  updateCarModel(id: string, dto: { title?: string; image?: string }) {
-    return this.prisma.carModelOption.update({ where: { id }, data: dto });
+  async updateCarModel(
+    id: string,
+    dto: { title?: string; brandId?: string; image?: string },
+  ) {
+    if (dto.brandId) {
+      const brand = await this.prisma.carBrandOption.findUnique({
+        where: { id: dto.brandId },
+        select: { id: true },
+      });
+      if (!brand) {
+        throw new NotFoundException(`Car brand with ID "${dto.brandId}" not found`);
+      }
+    }
+    return this.prisma.carModelOption.update({
+      where: { id },
+      data: dto,
+      include: {
+        brand: {
+          select: { id: true, name: true, image: true },
+        },
+      },
+    });
   }
 
   deleteCarModel(id: string) {
@@ -90,6 +135,15 @@ export class OptionsService {
       where: search
         ? { name: { contains: search, mode: 'insensitive' } }
         : undefined,
+      include: {
+        _count: {
+          select: {
+            models: true,
+            listings: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
     });
   }
 

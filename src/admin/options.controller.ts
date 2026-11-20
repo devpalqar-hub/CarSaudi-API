@@ -137,8 +137,17 @@ export class OptionsController {
     type: String,
     description: 'Search term for car model title',
   })
-  getCarModels(@Query('search') search?: string) {
-    return this.optionsService.getCarModels(search);
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description: 'Filter car models by brand ID',
+  })
+  getCarModels(
+    @Query('search') search?: string,
+    @Query('brandId') brandId?: string,
+  ) {
+    return this.optionsService.getCarModels(search, brandId);
   }
 
   @Post('car-models')
@@ -157,6 +166,12 @@ export class OptionsController {
   @ApiOperation({ summary: 'Delete a car model' })
   deleteCarModel(@Param('id') id: string) {
     return this.optionsService.deleteCarModel(id);
+  }
+
+  @Get('car-brands/:id/models')
+  @ApiOperation({ summary: 'Get all car models for a specific brand' })
+  getCarBrandModels(@Param('id') brandId: string) {
+    return this.optionsService.getCarModels(undefined, brandId);
   }
 
   @Get('car-brands')

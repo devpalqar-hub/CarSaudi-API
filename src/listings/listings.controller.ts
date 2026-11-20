@@ -80,6 +80,22 @@ export class ListingsController {
     return this.listingsService.getPopularBrands();
   }
 
+  // ─── Brand Models ───────────────────────────────────────────────────────────
+
+  @Get('brands/:brandId/models')
+  @ApiOperation({
+    summary: 'Get all car models for a specific brand',
+    description:
+      'Returns active car models belonging to the specified car brand with active listing counts.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of car models belonging to the specified brand',
+  })
+  getModelsByBrand(@Param('brandId') brandId: string) {
+    return this.listingsService.getModelsByBrand(brandId);
+  }
+
   // ─── Nearby Listings ───────────────────────────────────────────────────────
 
   @Get('nearby')

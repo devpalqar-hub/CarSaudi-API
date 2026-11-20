@@ -61,6 +61,14 @@ export class CreateCarModelDto {
   @IsNotEmpty()
   title: string;
 
+  @ApiProperty({
+    example: 'clx123abc...',
+    description: 'The ID of the car brand this model belongs to',
+  })
+  @IsString()
+  @IsNotEmpty()
+  brandId: string;
+
   @ApiPropertyOptional({
     example: 'https://example.com/image.png',
     description: 'Optional image URL',

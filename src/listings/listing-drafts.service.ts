@@ -278,7 +278,7 @@ export class ListingDraftsService {
   private async loadReferenceLookups() {
     const [models, carTypes, brands, features, tags] = await Promise.all([
       this.prisma.carModelOption.findMany({
-        select: { id: true, title: true },
+        select: { id: true, title: true, brandId: true },
       }),
       this.prisma.carTypeOption.findMany({
         select: { id: true, title: true },
@@ -306,12 +306,18 @@ export class ListingDraftsService {
       return map;
     };
 
+    const modelToBrandId = new Map<string, string>();
+    models.forEach((m) => {
+      modelToBrandId.set(m.id, m.brandId);
+    });
+
     return {
       models: byIdOrTitle(models),
       carTypes: byIdOrTitle(carTypes),
       brands: byIdOrTitle(brands),
       features: byIdOrTitle(features),
       tags: byIdOrTitle(tags),
+      modelToBrandId,
     };
   }
 
@@ -353,12 +359,24 @@ export class ListingDraftsService {
       errors.push(`model "${modelRaw}" not found (use a car model ID or exact title)`);
 
     const brandRaw = String(get('brand') ?? '').trim();
-    const brandId = brandRaw
+    let brandId = brandRaw
       ? lookups.brands.get(brandRaw.toLowerCase())
       : undefined;
-    if (!brandRaw) errors.push('brand is required');
-    else if (!brandId)
+
+    // If brand was not explicitly provided but model was matched, auto-infer brand from model
+    if (!brandId && modelId) {
+      brandId = lookups.modelToBrandId.get(modelId);
+    }
+
+    if (!brandRaw && !brandId) errors.push('brand is required');
+    else if (brandRaw && !brandId)
       errors.push(`brand "${brandRaw}" not found (use a car brand ID or exact name)`);
+    else if (modelId && brandId) {
+      const expectedBrandId = lookups.modelToBrandId.get(modelId);
+      if (expectedBrandId && expectedBrandId !== brandId) {
+        errors.push(`model "${modelRaw}" does not belong to brand "${brandRaw}"`);
+      }
+    }
 
     const price = toNumber(get('price'));
     if (price === undefined || price <= 0)
